@@ -94,3 +94,8 @@ project/
 ## Licencia
 
 Este proyecto está licenciado bajo [incluir licencia]
+## Que hay que hacer
+
+1. Cambiar las fotos en general(Hay que cambiar a que sea un repositorio local), nombres(menos chat gepetoso)
+2. Quitar pestañas inservibles
+3. La logica de el vendedor mejorarle
