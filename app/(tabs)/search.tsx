@@ -7,12 +7,20 @@ import RestaurantCard from '@/components/home/RestaurantCard';
 import FilterModal from '@/components/search/FilterModal';
 import { mockRestaurants } from '@/data/mockData';
 
+interface Filters {
+  cuisine: string[];
+  priceRange: string | null;
+  rating: number | null;
+  distance: number;
+  promoOnly: boolean;
+}
+
 export default function SearchScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [activeFilters, setActiveFilters] = useState({
+  const [activeFilters, setActiveFilters] = useState<Filters>({
     cuisine: [],
     priceRange: null,
     rating: null,
@@ -33,7 +41,7 @@ export default function SearchScreen() {
           <Search size={20} color="#999" />
           <TextInput
             style={styles.searchInput}
-            placeholder={t('search.placeholder')}
+            placeholder="Buscar restaurantes..."
             value={searchQuery}
             onChangeText={setSearchQuery}
             autoFocus
@@ -57,10 +65,10 @@ export default function SearchScreen() {
           <>
             <View style={styles.resultsHeader}>
               <Text style={styles.resultsTitle}>
-                {t('search.resultsFor')} "{searchQuery}"
+                Resultados para "{searchQuery}"
               </Text>
               <Text style={styles.resultsCount}>
-                {filteredRestaurants.length} {t('search.found')}
+                {filteredRestaurants.length} restaurantes encontrados
               </Text>
             </View>
 
@@ -74,16 +82,16 @@ export default function SearchScreen() {
 
             {filteredRestaurants.length === 0 && (
               <View style={styles.noResults}>
-                <Text style={styles.noResultsText}>{t('search.noResults')}</Text>
+                <Text style={styles.noResultsText}>No se encontraron resultados</Text>
               </View>
             )}
           </>
         ) : (
           <View style={styles.recentSearches}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>{t('search.recentSearches')}</Text>
+              <Text style={styles.sectionTitle}>Búsquedas recientes</Text>
               <TouchableOpacity>
-                <Text style={styles.clearText}>{t('search.clear')}</Text>
+                <Text style={styles.clearText}>Limpiar</Text>
               </TouchableOpacity>
             </View>
             
@@ -98,7 +106,7 @@ export default function SearchScreen() {
             </TouchableOpacity>
 
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>{t('search.popularCategories')}</Text>
+              <Text style={styles.sectionTitle}>Categorías populares</Text>
             </View>
 
             <View style={styles.categoriesContainer}>
@@ -120,7 +128,7 @@ export default function SearchScreen() {
         visible={showFilterModal}
         onClose={() => setShowFilterModal(false)}
         filters={activeFilters}
-        onApplyFilters={(filters) => {
+        onApplyFilters={(filters: Filters) => {
           setActiveFilters(filters);
           setShowFilterModal(false);
         }}

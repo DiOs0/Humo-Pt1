@@ -32,7 +32,7 @@ export default function RestaurantCard({ restaurant, onPress }) {
         <View style={styles.infoContainer}>
           <View style={styles.infoItem}>
             <MapPin size={14} color="#666" />
-            <Text style={styles.infoText}>{restaurant.distance}km {t('restaurant.away')}</Text>
+            <Text style={styles.infoText}>{restaurant.distance}km de distancia</Text>
           </View>
           
           <View style={styles.infoItem}>

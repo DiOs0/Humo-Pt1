@@ -1,10 +1,28 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Switch, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LogOut, ChevronRight, Bell, CreditCard, Globe, HelpCircle, Settings, ShieldCheck, User2 } from 'lucide-react-native';
+import { LogOut, ChevronRight, Bell, CreditCard, Globe, HelpCircle, Settings, ShieldCheck, User2, Store } from 'lucide-react-native';
 import { useTranslation } from '@/hooks/useTranslation';
 
-function ProfileMenuItem({ icon, title, subtitle, onPress, showToggle = false, toggleValue = false, onToggleChange = null }) {
+interface ProfileMenuItemProps {
+  icon: any;
+  title: string;
+  subtitle?: string;
+  onPress: () => void;
+  showToggle?: boolean;
+  toggleValue?: boolean;
+  onToggleChange?: (value: boolean) => void;
+}
+
+function ProfileMenuItem({ 
+  icon, 
+  title, 
+  subtitle, 
+  onPress, 
+  showToggle = false, 
+  toggleValue = false, 
+  onToggleChange 
+}: ProfileMenuItemProps) {
   const IconComponent = icon;
   
   return (
@@ -34,7 +52,7 @@ function ProfileMenuItem({ icon, title, subtitle, onPress, showToggle = false, t
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { t, toggleLanguage, currentLanguage } = useTranslation();
+  const { toggleLanguage, currentLanguage } = useTranslation();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [isVendorMode, setIsVendorMode] = useState(false);
 
@@ -46,7 +64,7 @@ export default function ProfileScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>{t('profile.title')}</Text>
+        <Text style={styles.headerTitle}>Mi Perfil</Text>
       </View>
 
       <ScrollView>
@@ -60,83 +78,85 @@ export default function ProfileScreen() {
             <Text style={styles.profileEmail}>john.doe@example.com</Text>
           </View>
           <TouchableOpacity style={styles.editButton}>
-            <Text style={styles.editButtonText}>{t('profile.edit')}</Text>
+            <Text style={styles.editButtonText}>Editar</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.sectionTitle}>
-          <Text style={styles.sectionTitleText}>{t('profile.account')}</Text>
+          <Text style={styles.sectionTitleText}>Cuenta</Text>
         </View>
 
         <View style={styles.menuSection}>
           <ProfileMenuItem
             icon={User2}
-            title={t('profile.personalInfo')}
+            title="Información Personal"
+            subtitle="Gestiona tus datos personales"
             onPress={() => console.log('Personal Info')}
           />
           
           <ProfileMenuItem
             icon={CreditCard}
-            title={t('profile.paymentMethods')}
-            subtitle={t('profile.addPaymentMethod')}
+            title="Métodos de Pago"
+            subtitle="Agregar o editar formas de pago"
             onPress={() => console.log('Payment Methods')}
           />
-          
+
           <ProfileMenuItem
             icon={Bell}
-            title={t('profile.notifications')}
-            showToggle={true}
+            title="Notificaciones"
+            subtitle="Configurar alertas y avisos"
+            showToggle
             toggleValue={notificationsEnabled}
             onToggleChange={setNotificationsEnabled}
+            onPress={() => console.log('Notifications')}
           />
         </View>
 
         <View style={styles.sectionTitle}>
-          <Text style={styles.sectionTitleText}>{t('profile.preferences')}</Text>
+          <Text style={styles.sectionTitleText}>Preferencias</Text>
         </View>
 
         <View style={styles.menuSection}>
           <ProfileMenuItem
+            icon={Settings}
+            title="Configuración"
+            subtitle="Personaliza tu experiencia"
+            onPress={() => console.log('Settings')}
+          />
+
+          <ProfileMenuItem
             icon={Globe}
-            title={t('profile.language')}
-            subtitle={currentLanguage === 'en' ? 'English' : 'Español'}
+            title="Idioma"
+            subtitle={currentLanguage === 'es' ? 'Español' : 'English'}
             onPress={toggleLanguage}
           />
-          
+
           <ProfileMenuItem
             icon={ShieldCheck}
-            title={t('profile.privacy')}
+            title="Privacidad y Seguridad"
+            subtitle="Gestiona tu privacidad"
             onPress={() => console.log('Privacy')}
           />
         </View>
 
         <View style={styles.sectionTitle}>
-          <Text style={styles.sectionTitleText}>{t('profile.support')}</Text>
+          <Text style={styles.sectionTitleText}>Ayuda y Soporte</Text>
         </View>
 
         <View style={styles.menuSection}>
           <ProfileMenuItem
             icon={HelpCircle}
-            title={t('profile.help')}
-            onPress={() => console.log('Help')}
+            title="Centro de Ayuda"
+            subtitle="Preguntas frecuentes y soporte"
+            onPress={() => console.log('Help Center')}
           />
-          
-          <ProfileMenuItem
-            icon={Settings}
-            title={t('profile.settings')}
-            onPress={() => console.log('Settings')}
-          />
-        </View>
 
-        <View style={styles.vendorSection}>
-          <Text style={styles.vendorTitle}>{t('profile.areYouVendor')}</Text>
-          <Text style={styles.vendorSubtitle}>{t('profile.vendorSubtitle')}</Text>
-          <TouchableOpacity 
-            style={styles.vendorButton}
+          <ProfileMenuItem
+            icon={Store}
+            title="Modo Restaurante"
+            subtitle="¿Tienes un restaurante? Administra tu negocio"
             onPress={switchToVendorMode}
-          >
-            <Text style={styles.vendorButtonText}>{t('profile.switchToVendor')}</Text>
-          </TouchableOpacity>
+          />
         </View>
 
         <TouchableOpacity 
@@ -144,12 +164,8 @@ export default function ProfileScreen() {
           onPress={() => router.push('/auth/login')}
         >
           <LogOut size={20} color="#E53935" />
-          <Text style={styles.logoutText}>{t('profile.logout')}</Text>
+          <Text style={styles.logoutText}>Cerrar Sesión</Text>
         </TouchableOpacity>
-
-        <View style={styles.versionInfo}>
-          <Text style={styles.versionText}>EasyFood v1.0.0</Text>
-        </View>
       </ScrollView>
     </View>
   );

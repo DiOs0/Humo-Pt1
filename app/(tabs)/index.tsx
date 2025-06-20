@@ -31,7 +31,7 @@ export default function HomeScreen() {
           <Search size={20} color="#999" style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder={t('home.searchPlaceholder')}
+            placeholder="¿Qué te gustaría comer?"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
@@ -45,14 +45,14 @@ export default function HomeScreen() {
         <PromoCarousel />
         
         <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>{t('home.categories')}</Text>
+          <Text style={styles.sectionTitle}>Categorías</Text>
           <CategoryList />
         </View>
 
         <View style={styles.sectionContainer}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{t('home.nearby')}</Text>
-            <Text style={styles.sectionSubtitle}>3km {t('home.radius')}</Text>
+            <Text style={styles.sectionTitle}>Restaurantes cercanos</Text>
+            <Text style={styles.sectionSubtitle}>Radio de 3km</Text>
           </View>
           
           {nearbyRestaurants.map((restaurant) => (

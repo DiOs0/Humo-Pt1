@@ -182,7 +182,7 @@ export default function FilterModal({ visible, onClose, filters, onApplyFilters 
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{t('search.filters')}</Text>
+            <Text style={styles.modalTitle}>Filtros</Text>
             <TouchableOpacity onPress={onClose}>
               <X size={24} color="#333" />
             </TouchableOpacity>
@@ -190,7 +190,7 @@ export default function FilterModal({ visible, onClose, filters, onApplyFilters 
           
           <ScrollView style={styles.modalBody}>
             <View style={styles.filterSection}>
-              <Text style={styles.filterTitle}>{t('search.priceRange')}</Text>
+              <Text style={styles.filterTitle}>Rango de Precio</Text>
               <PriceRangeSelector 
                 value={localFilters.priceRange}
                 onChange={(value) => setLocalFilters(prev => ({ ...prev, priceRange: value }))}
@@ -198,7 +198,7 @@ export default function FilterModal({ visible, onClose, filters, onApplyFilters 
             </View>
             
             <View style={styles.filterSection}>
-              <Text style={styles.filterTitle}>{t('search.rating')}</Text>
+              <Text style={styles.filterTitle}>Calificación</Text>
               <RatingSelector 
                 value={localFilters.rating}
                 onChange={(value) => setLocalFilters(prev => ({ ...prev, rating: value }))}
@@ -206,7 +206,7 @@ export default function FilterModal({ visible, onClose, filters, onApplyFilters 
             </View>
             
             <View style={styles.filterSection}>
-              <Text style={styles.filterTitle}>{t('search.distance')}</Text>
+              <Text style={styles.filterTitle}>Distancia</Text>
               <DistanceSlider 
                 value={localFilters.distance}
                 onChange={(value) => setLocalFilters(prev => ({ ...prev, distance: value }))}
@@ -226,7 +226,7 @@ export default function FilterModal({ visible, onClose, filters, onApplyFilters 
             </View>
             
             <View style={styles.filterSection}>
-              <Text style={styles.filterTitle}>{t('search.cuisine')}</Text>
+              <Text style={styles.filterTitle}>Tipo de Cocina</Text>
               <CuisineSelector 
                 selectedCuisines={localFilters.cuisine}
                 onToggleCuisine={toggleCuisine}
@@ -239,14 +239,14 @@ export default function FilterModal({ visible, onClose, filters, onApplyFilters 
               style={styles.resetButton}
               onPress={handleResetFilters}
             >
-              <Text style={styles.resetButtonText}>{t('search.reset')}</Text>
+              <Text style={styles.resetButtonText}>Restablecer</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
               style={styles.applyButton}
               onPress={handleApplyFilters}
             >
-              <Text style={styles.applyButtonText}>{t('search.apply')}</Text>
+              <Text style={styles.applyButtonText}>Aplicar</Text>
             </TouchableOpacity>
           </View>
         </View>

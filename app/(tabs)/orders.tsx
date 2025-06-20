@@ -5,8 +5,39 @@ import { ArrowRight, Clock } from 'lucide-react-native';
 import { useTranslation } from '@/hooks/useTranslation';
 import { mockOrders } from '@/data/mockData';
 
-function OrderStatusIndicator({ status }) {
-  const getStatusColor = () => {
+type OrderStatus = 'preparing' | 'ready' | 'delivering' | 'completed' | 'cancelled';
+
+interface OrderItem {
+  id: number;
+  name: string;
+  price: number;
+  quantity: number;
+  notes?: string;
+}
+
+interface Order {
+  id: number;
+  restaurantId: number;
+  restaurantName: string;
+  restaurantImage: string;
+  status: OrderStatus;
+  date: string;
+  total: number;
+  customerName: string;
+  items: OrderItem[];
+}
+
+interface OrderStatusIndicatorProps {
+  status: OrderStatus;
+}
+
+interface OrderItemProps {
+  order: Order;
+  onPress: () => void;
+}
+
+function OrderStatusIndicator({ status }: OrderStatusIndicatorProps) {
+  const getStatusColor = (): string => {
     switch (status) {
       case 'preparing':
         return '#FF8C42';
@@ -23,19 +54,18 @@ function OrderStatusIndicator({ status }) {
     }
   };
 
-  const getStatusText = (status) => {
-    const { t } = useTranslation();
+  const getStatusText = (status: OrderStatus): string => {
     switch (status) {
       case 'preparing':
-        return t('orders.statusPreparing');
+        return 'Preparando';
       case 'ready':
-        return t('orders.statusReady');
+        return 'Listo para entrega';
       case 'delivering':
-        return t('orders.statusDelivering');
+        return 'En camino';
       case 'completed':
-        return t('orders.statusCompleted');
+        return 'Entregado';
       case 'cancelled':
-        return t('orders.statusCancelled');
+        return 'Cancelado';
       default:
         return status;
     }
@@ -51,8 +81,7 @@ function OrderStatusIndicator({ status }) {
   );
 }
 
-function OrderItem({ order, onPress }) {
-  const { t } = useTranslation();
+function OrderItem({ order, onPress }: OrderItemProps) {
   const formattedDate = new Date(order.date).toLocaleDateString();
   const formattedTime = new Date(order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -66,12 +95,12 @@ function OrderItem({ order, onPress }) {
             <Clock size={12} color="#666" /> {formattedDate} {formattedTime}
           </Text>
         </View>
-        <OrderStatusIndicator status={order.status} />
+        <OrderStatusIndicator status={order.status as OrderStatus} />
       </View>
       
       <View style={styles.orderSummary}>
         <Text style={styles.orderItems}>
-          {order.items.map(item => item.name).join(', ')}
+          {order.items.map((item: OrderItem) => item.name).join(', ')}
         </Text>
         <Text style={styles.orderTotal}>
           ${order.total.toFixed(2)}
@@ -80,10 +109,10 @@ function OrderItem({ order, onPress }) {
       
       <View style={styles.orderFooter}>
         <Text style={styles.orderId}>
-          {t('orders.orderID')}: #{order.id}
+          Pedido #{order.id}
         </Text>
         <TouchableOpacity style={styles.detailsButton}>
-          <Text style={styles.detailsText}>{t('orders.details')}</Text>
+          <Text style={styles.detailsText}>Ver Detalles</Text>
           <ArrowRight size={16} color="#E85D04" />
         </TouchableOpacity>
       </View>
@@ -93,87 +122,95 @@ function OrderItem({ order, onPress }) {
 
 export default function OrdersScreen() {
   const router = useRouter();
-  const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState('active');
+  const [activeTab, setActiveTab] = useState<'active' | 'past'>('active');
 
-  const activeOrders = mockOrders.filter(order => 
+  const activeOrders = mockOrders.filter((order): order is Order => 
     ['preparing', 'ready', 'delivering'].includes(order.status)
   );
-  
-  const pastOrders = mockOrders.filter(order => 
+
+  const pastOrders = mockOrders.filter((order): order is Order => 
     ['completed', 'cancelled'].includes(order.status)
   );
 
-  const displayOrders = activeTab === 'active' ? activeOrders : pastOrders;
+  const handleOrderPress = (orderId: number) => {
+    router.push(`/order/${orderId}`);
+  };
+
+  const handleBrowsePress = () => {
+    router.push('/');
+  };
+
+  const renderOrderItem = ({ item }: { item: Order }) => (
+    <OrderItem
+      order={item}
+      onPress={() => handleOrderPress(item.id)}
+    />
+  );
+
+  const renderEmptyState = () => {
+    const isEmpty = activeTab === 'active' 
+      ? activeOrders.length === 0 
+      : pastOrders.length === 0;
+
+    if (!isEmpty) return null;
+
+    return (
+      <View style={styles.emptyState}>
+        <Text style={styles.emptyStateTitle}>
+          {activeTab === 'active'
+            ? 'No tienes pedidos activos' 
+            : 'No tienes pedidos anteriores'}
+        </Text>
+        <Text style={styles.emptyStateText}>
+          {activeTab === 'active'
+            ? 'Explorar Restaurantes' 
+            : 'Historial de Pedidos'}
+        </Text>
+        {activeTab === 'active' && (
+          <TouchableOpacity 
+            style={styles.browseButton}
+            onPress={handleBrowsePress}
+          >
+            <Text style={styles.browseButtonText}>Explorar Ahora</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>{t('orders.title')}</Text>
+        <Text style={styles.headerTitle}>Mis Pedidos</Text>
       </View>
 
-      <View style={styles.tabsContainer}>
-        <TouchableOpacity 
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
           style={[styles.tab, activeTab === 'active' && styles.activeTab]}
           onPress={() => setActiveTab('active')}
         >
-          <Text 
-            style={[styles.tabText, activeTab === 'active' && styles.activeTabText]}
-          >
-            {t('orders.active')} ({activeOrders.length})
+          <Text style={[styles.tabText, activeTab === 'active' && styles.activeTabText]}>
+            Pedidos Activos ({activeOrders.length})
           </Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={[styles.tab, activeTab === 'past' && styles.activeTab]}
           onPress={() => setActiveTab('past')}
         >
-          <Text 
-            style={[styles.tabText, activeTab === 'past' && styles.activeTabText]}
-          >
-            {t('orders.past')}
+          <Text style={[styles.tabText, activeTab === 'past' && styles.activeTabText]}>
+            Pedidos Anteriores
           </Text>
         </TouchableOpacity>
       </View>
 
-      {displayOrders.length > 0 ? (
-        <FlatList
-          data={displayOrders}
-          keyExtractor={item => item.id.toString()}
-          renderItem={({ item }) => (
-            <OrderItem 
-              order={item} 
-              onPress={() => router.push(`/order/${item.id}`)}
-            />
-          )}
-          contentContainerStyle={styles.ordersList}
-        />
-      ) : (
-        <View style={styles.emptyContainer}>
-          <Image 
-            source={{ uri: 'https://images.pexels.com/photos/8964968/pexels-photo-8964968.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1' }}
-            style={styles.emptyImage}
-          />
-          <Text style={styles.emptyTitle}>
-            {activeTab === 'active' 
-              ? t('orders.noActiveOrders') 
-              : t('orders.noPastOrders')}
-          </Text>
-          <Text style={styles.emptySubtitle}>
-            {activeTab === 'active' 
-              ? t('orders.browseRestaurants') 
-              : t('orders.orderHistory')}
-          </Text>
-          {activeTab === 'active' && (
-            <TouchableOpacity 
-              style={styles.browseButton}
-              onPress={() => router.push('/')}
-            >
-              <Text style={styles.browseButtonText}>{t('orders.browse')}</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
+      <FlatList
+        data={activeTab === 'active' ? activeOrders : pastOrders}
+        renderItem={renderOrderItem}
+        keyExtractor={(item) => item.id.toString()}
+        contentContainerStyle={styles.orderList}
+        ListEmptyComponent={renderEmptyState}
+      />
     </View>
   );
 }
@@ -194,7 +231,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
   },
-  tabsContainer: {
+  tabContainer: {
     flexDirection: 'row',
     backgroundColor: 'white',
     paddingHorizontal: 16,
@@ -218,7 +255,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#E85D04',
   },
-  ordersList: {
+  orderList: {
     padding: 16,
   },
   orderItem: {
@@ -314,27 +351,20 @@ const styles = StyleSheet.create({
     color: '#E85D04',
     marginRight: 4,
   },
-  emptyContainer: {
+  emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
   },
-  emptyImage: {
-    width: 120,
-    height: 120,
-    marginBottom: 16,
-    opacity: 0.8,
-    borderRadius: 60,
-  },
-  emptyTitle: {
+  emptyStateTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
     marginBottom: 8,
     textAlign: 'center',
   },
-  emptySubtitle: {
+  emptyStateText: {
     fontSize: 14,
     color: '#666',
     textAlign: 'center',

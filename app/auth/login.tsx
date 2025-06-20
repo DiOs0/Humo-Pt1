@@ -8,10 +8,12 @@ export default function LoginScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const [isLogin, setIsLogin] = useState(true);
-  const [userType, setUserType] = useState('customer'); // 'customer' or 'vendor'
+  const [userType, setUserType] = useState('customer');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [businessName, setBusinessName] = useState('');
+  const [ruc, setRuc] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = () => {
@@ -45,7 +47,7 @@ export default function LoginScreen() {
             <ArrowLeft size={24} color="#333" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
-            {isLogin ? t('auth.login') : t('auth.signup')}
+            {isLogin ? 'Iniciar Sesión' : 'Registrarse'}
           </Text>
         </View>
 
@@ -68,7 +70,7 @@ export default function LoginScreen() {
                   userType === 'customer' && styles.activeUserTypeText
                 ]}
               >
-                {t('auth.customer')}
+                Cliente
               </Text>
             </TouchableOpacity>
             
@@ -85,7 +87,24 @@ export default function LoginScreen() {
                   userType === 'vendor' && styles.activeUserTypeText
                 ]}
               >
-                {t('auth.vendor')}
+                Vendedor
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.userTypeButton,
+                userType === 'business' && styles.activeUserType
+              ]}
+              onPress={() => setUserType('business')}
+            >
+              <Text
+                style={[
+                  styles.userTypeText,
+                  userType === 'business' && styles.activeUserTypeText
+                ]}
+              >
+                Empresa
               </Text>
             </TouchableOpacity>
           </View>
@@ -93,23 +112,41 @@ export default function LoginScreen() {
 
         <View style={styles.formContainer}>
           {!isLogin && (
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>{t('auth.fullName')}</Text>
-              <TextInput
-                style={styles.input}
-                placeholder={t('auth.fullNamePlaceholder')}
-                value={name}
-                onChangeText={setName}
-                autoCapitalize="words"
-              />
-            </View>
+            <>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>
+                  {userType === 'business' ? 'Nombre de la Empresa' : 'Nombre Completo'}
+                </Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder={userType === 'business' ? 'Ingrese nombre de la empresa' : 'Ingrese nombre completo'}
+                  value={userType === 'business' ? businessName : name}
+                  onChangeText={userType === 'business' ? setBusinessName : setName}
+                  autoCapitalize="words"
+                />
+              </View>
+
+              {userType === 'business' && (
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>RUC</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Ingrese el RUC"
+                    value={ruc}
+                    onChangeText={setRuc}
+                    keyboardType="numeric"
+                    maxLength={13}
+                  />
+                </View>
+              )}
+            </>
           )}
 
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>{t('auth.email')}</Text>
+            <Text style={styles.inputLabel}>Email</Text>
             <TextInput
               style={styles.input}
-              placeholder={t('auth.emailPlaceholder')}
+              placeholder="Ingrese su email"
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -118,11 +155,11 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>{t('auth.password')}</Text>
+            <Text style={styles.inputLabel}>Contraseña</Text>
             <View style={styles.passwordContainer}>
               <TextInput
                 style={styles.passwordInput}
-                placeholder={t('auth.passwordPlaceholder')}
+                placeholder="Ingrese su contraseña"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
@@ -142,7 +179,7 @@ export default function LoginScreen() {
 
           {isLogin && (
             <TouchableOpacity style={styles.forgotPassword}>
-              <Text style={styles.forgotPasswordText}>{t('auth.forgotPassword')}</Text>
+              <Text style={styles.forgotPasswordText}>¿Olvidaste tu contraseña?</Text>
             </TouchableOpacity>
           )}
 
@@ -151,13 +188,13 @@ export default function LoginScreen() {
             onPress={handleSubmit}
           >
             <Text style={styles.submitButtonText}>
-              {isLogin ? t('auth.login') : t('auth.signup')}
+              {isLogin ? 'Iniciar Sesión' : 'Registrarse'}
             </Text>
           </TouchableOpacity>
 
           <View style={styles.orContainer}>
             <View style={styles.orLine} />
-            <Text style={styles.orText}>{t('auth.or')}</Text>
+            <Text style={styles.orText}>o</Text>
             <View style={styles.orLine} />
           </View>
 
@@ -167,17 +204,17 @@ export default function LoginScreen() {
               style={styles.googleIcon}
             />
             <Text style={styles.googleButtonText}>
-              {isLogin ? t('auth.loginWithGoogle') : t('auth.signupWithGoogle')}
+              {isLogin ? 'Continuar con Google' : 'Registrarse con Google'}
             </Text>
           </TouchableOpacity>
 
           <View style={styles.toggleContainer}>
             <Text style={styles.toggleText}>
-              {isLogin ? t('auth.noAccount') : t('auth.haveAccount')}
+              {isLogin ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?'}
             </Text>
             <TouchableOpacity onPress={() => setIsLogin(!isLogin)}>
               <Text style={styles.toggleLink}>
-                {isLogin ? t('auth.signup') : t('auth.login')}
+                {isLogin ? 'Regístrate' : 'Inicia Sesión'}
               </Text>
             </TouchableOpacity>
           </View>

@@ -5,7 +5,41 @@ import { ArrowLeft, Clock, MapPin, Star, Plus, Minus, ShoppingBag } from 'lucide
 import { useTranslation } from '@/hooks/useTranslation';
 import { mockRestaurants } from '@/data/mockData';
 
-function MenuItem({ item, onAdd, onRemove, quantity = 0 }) {
+interface MenuItem {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  image: string;
+  category: string;
+}
+
+interface Restaurant {
+  id: number;
+  name: string;
+  cuisine: string;
+  rating: number;
+  reviewCount: number;
+  distance: number;
+  deliveryTime: string;
+  image: string;
+  menu: MenuItem[];
+  description?: string;
+  promo?: string | null;
+}
+
+interface MenuItemProps {
+  item: MenuItem;
+  onAdd: (item: MenuItem) => void;
+  onRemove: (item: MenuItem) => void;
+  quantity: number;
+}
+
+interface CartItems {
+  [key: number]: number;
+}
+
+function MenuItem({ item, onAdd, onRemove, quantity = 0 }: MenuItemProps) {
   return (
     <View style={styles.menuItem}>
       <Image source={{ uri: item.image }} style={styles.menuItemImage} />
@@ -50,10 +84,10 @@ export default function RestaurantScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState('all');
-  const [cartItems, setCartItems] = useState({});
+  const [cartItems, setCartItems] = useState<CartItems>({});
   
   // Find the restaurant by ID
-  const restaurant = mockRestaurants.find(r => r.id.toString() === id);
+  const restaurant: Restaurant | undefined = mockRestaurants.find(r => r.id.toString() === id);
   
   if (!restaurant) {
     return (
@@ -69,14 +103,14 @@ export default function RestaurantScreen() {
     ? restaurant.menu 
     : restaurant.menu.filter(item => item.category === activeCategory);
 
-  const handleAddItem = (item) => {
+  const handleAddItem = (item: MenuItem) => {
     setCartItems(prev => ({
       ...prev,
       [item.id]: (prev[item.id] || 0) + 1
     }));
   };
 
-  const handleRemoveItem = (item) => {
+  const handleRemoveItem = (item: MenuItem) => {
     setCartItems(prev => {
       const newItems = { ...prev };
       if (newItems[item.id] > 1) {
@@ -88,10 +122,10 @@ export default function RestaurantScreen() {
     });
   };
 
-  const totalItems = Object.values(cartItems).reduce((sum, quantity) => sum + quantity, 0);
+  const totalItems: number = Object.values(cartItems).reduce((sum, quantity) => sum + quantity, 0);
   
-  const totalPrice = Object.entries(cartItems).reduce((sum, [itemId, quantity]) => {
-    const item = restaurant.menu.find(menuItem => menuItem.id.toString() === itemId);
+  const totalPrice: number = Object.entries(cartItems).reduce((sum, [itemId, quantity]) => {
+    const item = restaurant.menu.find(menuItem => menuItem.id === parseInt(itemId));
     return sum + (item ? item.price * quantity : 0);
   }, 0);
 
@@ -122,7 +156,7 @@ export default function RestaurantScreen() {
             <View style={styles.infoRow}>
               <View style={styles.infoItem}>
                 <MapPin size={16} color="#666" />
-                <Text style={styles.infoText}>{restaurant.distance}km {t('restaurant.away')}</Text>
+                <Text style={styles.infoText}>{restaurant.distance}km de distancia</Text>
               </View>
               <View style={styles.infoItem}>
                 <Clock size={16} color="#666" />

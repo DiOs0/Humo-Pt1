@@ -5,10 +5,41 @@ import { ArrowLeft, Phone, MessageCircle, Clock, Check, MapPin } from 'lucide-re
 import { useTranslation } from '@/hooks/useTranslation';
 import { mockOrders } from '@/data/mockData';
 
-// Simulated progress tracking
-const ORDER_STATUSES = ['preparing', 'ready', 'delivering', 'completed'];
+// Función auxiliar para validar el estado del pedido
+function isValidOrderStatus(status: string): status is OrderStatus {
+  return ['preparing', 'ready', 'delivering', 'completed', 'cancelled'].includes(status);
+}
 
-function OrderStatusTracker({ currentStatus }) {
+type OrderStatus = 'preparing' | 'ready' | 'delivering' | 'completed' | 'cancelled';
+
+interface OrderItem {
+  id: number;
+  name: string;
+  price: number;
+  quantity: number;
+  notes?: string;
+}
+
+interface Order {
+  id: number;
+  restaurantId: number;
+  restaurantName: string;
+  restaurantImage: string;
+  status: OrderStatus;
+  date: string;
+  total: number;
+  customerName: string;
+  items: OrderItem[];
+}
+
+interface OrderStatusTrackerProps {
+  currentStatus: OrderStatus;
+}
+
+// Simulated progress tracking
+const ORDER_STATUSES: OrderStatus[] = ['preparing', 'ready', 'delivering', 'completed'];
+
+function OrderStatusTracker({ currentStatus }: OrderStatusTrackerProps) {
   const statusIndex = ORDER_STATUSES.indexOf(currentStatus);
   
   return (
@@ -44,7 +75,7 @@ function OrderStatusTracker({ currentStatus }) {
   );
 }
 
-function StatusLabel({ status }) {
+function StatusLabel({ status }: { status: OrderStatus }) {
   const { t } = useTranslation();
   
   const getStatusInfo = () => {
@@ -108,19 +139,22 @@ export default function OrderTrackingScreen() {
   const { t } = useTranslation();
   
   // In a real app, we would fetch the order details from an API
-  const [order, setOrder] = useState(null);
+  const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   
   // Simulate order status changes for demo purposes
-  const [currentStatus, setCurrentStatus] = useState('preparing');
+  const [currentStatus, setCurrentStatus] = useState<OrderStatus>('preparing');
   
   useEffect(() => {
     // Simulate fetching order details
     const fetchedOrder = mockOrders.find(o => o.id.toString() === id);
     
-    if (fetchedOrder) {
-      setOrder(fetchedOrder);
-      setCurrentStatus(fetchedOrder.status);
+    if (fetchedOrder && isValidOrderStatus(fetchedOrder.status)) {
+      setOrder({
+        ...fetchedOrder,
+        status: fetchedOrder.status as OrderStatus
+      });
+      setCurrentStatus(fetchedOrder.status as OrderStatus);
     }
     
     setLoading(false);

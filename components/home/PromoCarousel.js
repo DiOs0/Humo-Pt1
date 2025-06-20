@@ -49,7 +49,7 @@ export default function PromoCarousel() {
           style={[styles.promoButton, { borderColor: item.textColor }]}
         >
           <Text style={[styles.promoButtonText, { color: item.textColor }]}>
-            {t('home.seeAll')}
+            Ver Todo
           </Text>
         </TouchableOpacity>
       </View>

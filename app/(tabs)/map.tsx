@@ -5,8 +5,37 @@ import { X, Navigation, Star } from 'lucide-react-native';
 import { useTranslation } from '@/hooks/useTranslation';
 import { mockRestaurants } from '@/data/mockData';
 
+interface Restaurant {
+  id: number;
+  name: string;
+  cuisine: string;
+  rating: number;
+  reviewCount: number;
+  distance: number;
+  deliveryTime: string;
+  image: string;
+  promo: string | null;
+  menu: Array<{
+    id: number;
+    name: string;
+    description: string;
+    price: number;
+    image: string;
+    category: string;
+  }>;
+}
+
+interface MapViewProps {
+  onSelectMarker: (restaurant: Restaurant) => void;
+}
+
+interface RestaurantCardProps {
+  restaurant: Restaurant;
+  onClose: () => void;
+}
+
 // Mock component to simulate a map since we can't use real maps in this context
-function MapView({ onSelectMarker }) {
+function MapView({ onSelectMarker }: MapViewProps) {
   return (
     <View style={styles.mapContainer}>
       <Image
@@ -37,9 +66,9 @@ function MapView({ onSelectMarker }) {
 export default function MapScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const [selectedRestaurant, setSelectedRestaurant] = useState(null);
+  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
 
-  const handleMarkerSelect = (restaurant) => {
+  const handleMarkerSelect = (restaurant: Restaurant) => {
     setSelectedRestaurant(restaurant);
   };
 
@@ -47,7 +76,7 @@ export default function MapScreen() {
     setSelectedRestaurant(null);
   };
 
-  const handleNavigate = (restaurant) => {
+  const handleNavigate = (restaurant: Restaurant) => {
     // In a real app, this would integrate with a maps application
     console.log(`Navigating to ${restaurant.name}`);
   };
@@ -55,8 +84,8 @@ export default function MapScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>{t('map.title')}</Text>
-        <Text style={styles.headerSubtitle}>{t('map.subtitle')}</Text>
+        <Text style={styles.headerTitle}>Restaurantes Cercanos</Text>
+        <Text style={styles.headerSubtitle}>Encuentra restaurantes en tu área</Text>
       </View>
 
       <MapView onSelectMarker={handleMarkerSelect} />
@@ -82,14 +111,14 @@ export default function MapScreen() {
                 <Text style={styles.ratingText}>{selectedRestaurant.rating}</Text>
                 <Text style={styles.reviewCount}>({selectedRestaurant.reviewCount})</Text>
               </View>
-              <Text style={styles.distance}>{selectedRestaurant.distance}km {t('map.away')}</Text>
+              <Text style={styles.distance}>{selectedRestaurant.distance} km de distancia</Text>
 
               <View style={styles.cardActions}>
                 <TouchableOpacity 
                   style={styles.viewButton}
                   onPress={() => router.push(`/restaurant/${selectedRestaurant.id}`)}
                 >
-                  <Text style={styles.viewButtonText}>{t('map.viewMenu')}</Text>
+                  <Text style={styles.viewButtonText}>Ver Menú</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity 

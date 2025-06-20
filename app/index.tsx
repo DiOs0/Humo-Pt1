@@ -23,14 +23,14 @@ export default function WelcomeScreen() {
       </View>
 
       <View style={styles.contentContainer}>
-        <Text style={styles.slogan}>{t('welcome.slogan')}</Text>
-        <Text style={styles.subText}>{t('welcome.supportLocal')}</Text>
+        <Text style={styles.slogan}>Tu comida favorita a un click</Text>
+        <Text style={styles.subText}>Apoya a los negocios locales</Text>
 
         <TouchableOpacity
           style={styles.startButton}
           onPress={() => router.push('/auth/login')}
         >
-          <Text style={styles.startButtonText}>{t('welcome.getStarted')}</Text>
+          <Text style={styles.startButtonText}>Comenzar</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -38,7 +38,7 @@ export default function WelcomeScreen() {
           onPress={toggleLanguage}
         >
           <Text style={styles.languageButtonText}>
-            {t('welcome.switchTo')} {currentLanguage === 'en' ? 'Español' : 'English'}
+            Cambiar a {currentLanguage === 'en' ? 'Español' : 'English'}
           </Text>
         </TouchableOpacity>
       </View>
