@@ -2,10 +2,11 @@ import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from '@/hooks/useTranslation';
+import { Store, User } from 'lucide-react-native';
 
 export default function WelcomeScreen() {
   const router = useRouter();
-  const { t, toggleLanguage, currentLanguage } = useTranslation();
+  const { toggleLanguage, currentLanguage } = useTranslation();
 
   return (
     <LinearGradient
@@ -26,12 +27,23 @@ export default function WelcomeScreen() {
         <Text style={styles.slogan}>Tu comida favorita a un click</Text>
         <Text style={styles.subText}>Apoya a los negocios locales</Text>
 
-        <TouchableOpacity
-          style={styles.startButton}
-          onPress={() => router.push('/auth/login')}
-        >
-          <Text style={styles.startButtonText}>Comenzar</Text>
-        </TouchableOpacity>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={styles.userButton}
+            onPress={() => router.push('/auth/login')}
+          >
+            <User size={24} color="#E85D04" />
+            <Text style={styles.userButtonText}>Ingresar como Usuario</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.restaurantButton}
+            onPress={() => router.push('/auth/restaurant-login' as any)}
+          >
+            <Store size={24} color="#fff" />
+            <Text style={styles.restaurantButtonText}>Ingresar como Restaurante</Text>
+          </TouchableOpacity>
+        </View>
 
         <TouchableOpacity
           style={styles.languageButton}
@@ -93,26 +105,55 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 32,
   },
-  startButton: {
+  buttonContainer: {
+    width: '100%',
+    gap: 16,
+  },
+  userButton: {
     backgroundColor: 'white',
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 30,
-    width: '100%',
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    justifyContent: 'center',
+    gap: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
-  startButtonText: {
+  userButtonText: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: '#E85D04',
   },
+  restaurantButton: {
+    backgroundColor: 'transparent',
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 30,
+    borderWidth: 2,
+    borderColor: 'white',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  restaurantButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: 'white',
+  },
   languageButton: {
-    padding: 16,
+    marginTop: 20,
   },
   languageButtonText: {
-    fontSize: 16,
     color: 'white',
-    textDecorationLine: 'underline',
+    fontSize: 16,
   },
 });

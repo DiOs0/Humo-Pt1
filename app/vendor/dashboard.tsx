@@ -50,6 +50,24 @@ function StatCard({ icon, title, value, trend, trendValue }: StatCardProps) {
       </View>
       <Text style={styles.statTitle}>{title}</Text>
       <Text style={styles.statValue}>{value}</Text>
+      <View style={[
+        styles.trendContainer,
+        { backgroundColor: isPositiveTrend ? '#E6F7EF' : '#FDEEEE' }
+      ]}>
+        <ArrowUpRight 
+          size={16}
+          color={isPositiveTrend ? '#33A95B' : '#E53935'}
+          style={{ transform: [{ rotate: isPositiveTrend ? '0deg' : '90deg' }] }}
+        />
+        <Text style={[
+          styles.trendText,
+          { color: isPositiveTrend ? '#33A95B' : '#E53935' }
+        ]}>
+          {trend}
+        </Text>
+      </View>
+      <Text style={styles.statTitle}>{title}</Text>
+      <Text style={styles.statValue}>{value}</Text>
       
       <View style={[
         styles.trendContainer,

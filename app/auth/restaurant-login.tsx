@@ -1,21 +1,19 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react-native';
-import GoogleIcon from '@/components/auth/GoogleIcon';
 
-export default function LoginScreen() {
+export default function RestaurantLoginScreen() {
   const router = useRouter();
-  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
+  const [ruc, setRuc] = useState('');
+  const [responsableName, setResponsableName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-
   const handleSubmit = () => {
-    // In a real app, this would validate inputs and make API calls
-    console.log({ email, password, name });
-    router.push('/(tabs)');
+    // En una app real, esto validaría los inputs y haría llamadas a la API
+    console.log({ email, password, ruc, responsableName });
+    router.replace('/vendor/dashboard');
   };
 
   const togglePasswordVisibility = () => {
@@ -36,34 +34,42 @@ export default function LoginScreen() {
           >
             <ArrowLeft size={24} color="#333" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>
-            {isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
-          </Text>
+          <Text style={styles.headerTitle}>Portal de Restaurantes</Text>
         </View>
 
         <View style={styles.formContainer}>
-          {!isLogin && (
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Nombre Completo</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Ingrese su nombre"
-                value={name}
-                onChangeText={setName}
-                autoCapitalize="words"
-              />
-            </View>
-          )}
-
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Correo Electrónico</Text>
             <TextInput
               style={styles.input}
-              placeholder="ejemplo@email.com"
+              placeholder="ejemplo@restaurante.com"
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>RUC</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Ingrese el RUC del restaurante"
+              value={ruc}
+              onChangeText={setRuc}
+              keyboardType="numeric"
+              maxLength={13}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Nombre del Responsable</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Nombre completo del responsable"
+              value={responsableName}
+              onChangeText={setResponsableName}
+              autoCapitalize="words"
             />
           </View>
 
@@ -94,35 +100,14 @@ export default function LoginScreen() {
             style={styles.submitButton}
             onPress={handleSubmit}
           >
-            <Text style={styles.submitButtonText}>
-              {isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
-            </Text>
-          </TouchableOpacity>
-
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>o</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <TouchableOpacity
-            style={styles.googleButton}
-            onPress={() => console.log('Google Sign In')}
-          >
-            <GoogleIcon size={20} />
-            <Text style={styles.googleButtonText}>
-              {isLogin ? 'Iniciar Sesión' : 'Continuar'} con Google
-            </Text>
+            <Text style={styles.submitButtonText}>Ingresar</Text>
           </TouchableOpacity>
 
           <View style={styles.footerText}>
             <Text style={styles.footerLabel}>
-              {isLogin ? '¿No tienes una cuenta?' : '¿Ya tienes una cuenta?'}
-            </Text>
-            <TouchableOpacity onPress={() => setIsLogin(!isLogin)}>
-              <Text style={styles.footerLink}>
-                {isLogin ? 'Regístrate' : 'Inicia Sesión'}
-              </Text>
+              ¿Aún no registras tu restaurante?
+            </Text>            <TouchableOpacity onPress={() => router.push('/auth/restaurant-register' as any)}>
+              <Text style={styles.footerLink}>Regístrate aquí</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -197,41 +182,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
+    marginTop: 24,
   },
   submitButtonText: {
     color: '#fff',
     fontSize: 18,
-    fontWeight: '600',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 24,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E1E1E1',
-  },
-  dividerText: {
-    color: '#666',
-    marginHorizontal: 16,
-    fontSize: 16,
-  },
-  googleButton: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E1E1E1',
-    gap: 12,
-  },
-  googleButtonText: {
-    color: '#333',
-    fontSize: 16,
     fontWeight: '600',
   },
   footerText: {
