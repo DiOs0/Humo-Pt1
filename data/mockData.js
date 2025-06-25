@@ -2,179 +2,183 @@
 export const mockRestaurants = [
   {
     id: 1,
-    name: "Burger Palace",
-    cuisine: "American",
+    name: "¡Hasta la Vuelta!, Señor",
+    cuisine: "Tipica",
     rating: 4.7,
     reviewCount: 245,
     distance: 1.2,
     deliveryTime: "25-40 min",
-    image: "https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-    promo: "Free delivery on orders over $15",
-    description: "Enjoy our gourmet burgers made with 100% Angus beef, fresh ingredients, and homemade sauces. Our goal is to provide the best burger experience in town!",
+    image: require("../assets/fotoRestaurante/fondoversiongrentehlvs.jpg"),
+    promo: "Por la compra de un plato, el segundo a mitad de precio!!",
+    description: "Descubrir el sabor típico de Quito, es rescatar del tiempo sus tradiciones, raíces y leyendas",
     menu: [
       {
         id: 1,
-        name: "Classic Burger",
-        description: "Beef patty, lettuce, tomato, cheese, and our special sauce",
+        name: "Fanesca",
+        description: "Plato tradicional ecuatoriano, un potaje que se prepara principalmente durante la Semana Santa",
         price: 12.99,
-        image: "https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-        category: "burgers"
+        image: require("../assets/fotoComida-1/fanesca.jpg"),
+        category: "Tipico"
       },
       {
         id: 2,
-        name: "Bacon Deluxe",
-        description: "Beef patty, bacon, cheddar, lettuce, tomato, and BBQ sauce",
+        name: "Estofado de Carne",
+        description: "Arroz, comida típica ecuatoriana, con carne de res, papas y zanahorias",
         price: 14.99,
-        image: "https://images.pexels.com/photos/3738730/pexels-photo-3738730.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-        category: "burgers"
+        image: require("../assets/fotoComida-1/estofadodecarne.jpg"),
+        category: "Tipico"
       },
       {
         id: 3,
-        name: "Veggie Burger",
-        description: "Plant-based patty, avocado, lettuce, tomato, and vegan mayo",
+        name: "fritada",
+        description: "Deliciosa fritada de cerdo con mote y llapingachos",
         price: 13.99,
-        image: "https://images.pexels.com/photos/1633578/pexels-photo-1633578.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-        category: "burgers"
+        image: require("../assets/fotoComida-1/fritada.jpg"),
+        category: "Fritada"
       },
       {
         id: 4,
-        name: "French Fries",
-        description: "Crispy golden fries with sea salt",
+        name: "churasco",
+        description: "Huevos, carne de res, plátano maduro y aguacate",
         price: 4.99,
-        image: "https://images.pexels.com/photos/1583884/pexels-photo-1583884.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-        category: "sides"
+        image: require("../assets/fotoComida-1/churasco.jpg"),
+        category: "Tipico"
       },
       {
         id: 5,
-        name: "Onion Rings",
-        description: "Crispy battered onion rings with dipping sauce",
+        name: "empanadas",
+        description: "empanadas de carne, pollo o queso, acompañadas de ají",
         price: 5.99,
-        image: "https://images.pexels.com/photos/9922855/pexels-photo-9922855.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-        category: "sides"
+        image: require("../assets/fotoComida-1/empanadas.jpg"),
+        category: "Empanadas"
       },
       {
         id: 6,
-        name: "Chocolate Milkshake",
-        description: "Rich and creamy chocolate milkshake with whipped cream",
+        name: "seco de chivo",
+        description: "chivo guisado con especias, acompañado de arroz y plátano",
         price: 5.99,
-        image: "https://images.pexels.com/photos/3727250/pexels-photo-3727250.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-        category: "drinks"
+        image: require("../assets/fotoComida-1/secochivo.jpg"),
+        category: "Secos"
       }
     ]
   },
   {
     id: 2,
-    name: "Pizza Express",
-    cuisine: "Italian",
+    name: "Las menestras de la almagro",
+    cuisine: "Asados",
     rating: 4.5,
     reviewCount: 189,
     distance: 0.8,
     deliveryTime: "30-45 min",
-    image: "https://images.pexels.com/photos/1146760/pexels-photo-1146760.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-    promo: "20% off on orders over $25",
+    image: require("../assets/fotoRestaurante/lasmestras.jpg"),
+    description: "Restaurante especializado en platos de carne asada y fritos",
+    promo: "3x2 en platos de carne",
     menu: [
       {
         id: 7,
-        name: "Margherita Pizza",
-        description: "Tomato sauce, mozzarella, and basil",
+        name: "Churasco",
+        description: "Carne asada con arroz, plátano y ensalada",
         price: 14.99,
-        image: "https://images.pexels.com/photos/1146760/pexels-photo-1146760.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-        category: "pizza"
+        image: require("../assets/fotoComida-2/churasco.jpg"),
+        category: "Tipico"
       },
       {
         id: 8,
-        name: "Pepperoni Pizza",
-        description: "Tomato sauce, mozzarella, and pepperoni",
+        name: "Filete de Pollo",
+        description: "Pollo frito con papas fritas y ensalada",
         price: 16.99,
-        image: "https://images.pexels.com/photos/4109111/pexels-photo-4109111.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-        category: "pizza"
+        image: require("../assets/fotoComida-2/filetepollo.jpg"),
+        category: "Fritos"
       }
     ]
   },
   {
     id: 3,
-    name: "Taco Fiesta",
-    cuisine: "Mexican",
+    name: "Cafe San Blas",
+    cuisine: "Cafeteria",
     rating: 4.3,
     reviewCount: 156,
     distance: 1.5,
     deliveryTime: "20-35 min",
-    image: "https://images.pexels.com/photos/4958641/pexels-photo-4958641.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
+    image: require("../assets/fotoRestaurante/cafesb.jpg"),
+    description: "Cafetería acogedora con una variedad de cafés, postres y pizzas",
     promo: null,
     menu: [
       {
         id: 9,
-        name: "Beef Tacos",
-        description: "Three tacos with seasoned beef, lettuce, cheese, and salsa",
+        name: "Postre de Chocolate",
+        description: "Postre de chocolate con helado de vainilla",
         price: 12.99,
-        image: "https://images.pexels.com/photos/4958641/pexels-photo-4958641.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-        category: "tacos"
+        image: require("../assets/fotoComida-3/cocteldec.jpg"),
+        category: "Postres"
       },
       {
         id: 10,
-        name: "Chicken Quesadilla",
-        description: "Grilled chicken, melted cheese, and peppers in a flour tortilla",
+        name: "Pizza con Pimiento y Champiñones",
+        description: "Pizza con pimiento y champiñones",
         price: 11.99,
-        image: "https://images.pexels.com/photos/6605208/pexels-photo-6605208.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-        category: "quesadillas"
+        image: require("../assets/fotoComida-3/pizzapim.jpg"),
+        category: "Pizzas"
       }
     ]
   },
   {
     id: 4,
-    name: "Sushi World",
-    cuisine: "Japanese",
+    name: "Corvinas de Don Jimmy",
+    cuisine: "Ecuatoriana",
     rating: 4.8,
     reviewCount: 312,
     distance: 2.2,
     deliveryTime: "35-50 min",
-    image: "https://images.pexels.com/photos/2098085/pexels-photo-2098085.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-    promo: "Free miso soup with orders over $30",
+    image: require("../assets/fotoRestaurante/corvinasj.jpg"),
+    description: "Restaurante especializado en mariscos frescos y platos típicos ecuatorianos",
+    promo: "Gratis chifles con tu pedido",
     menu: [
       {
         id: 11,
-        name: "California Roll",
-        description: "Crab, avocado, and cucumber",
+        name: "Corvina",
+        description: "Corvina fresca a la parrilla con guarnición de ensalada",
         price: 8.99,
-        image: "https://images.pexels.com/photos/2098085/pexels-photo-2098085.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-        category: "rolls"
+        image: require("../assets/fotoComida-4/corvin.jpg"),
+        category: "Mariscos"
       },
       {
         id: 12,
-        name: "Salmon Nigiri",
-        description: "Fresh salmon over pressed rice",
+        name: "encebollado",
+        description: "Sopa de pescado con cebolla y yuca",
         price: 9.99,
-        image: "https://images.pexels.com/photos/2323398/pexels-photo-2323398.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-        category: "nigiri"
+        image: require("../assets/fotoComida-4/encebollado.jpg"),
+        category: "Sopas"
       }
     ]
   },
   {
     id: 5,
-    name: "Green Garden",
-    cuisine: "Vegetarian",
+    name: "Mote Colonial",
+    cuisine: "Tradicional",
     rating: 4.6,
     reviewCount: 178,
     distance: 1.1,
     deliveryTime: "25-40 min",
-    image: "https://images.pexels.com/photos/1211887/pexels-photo-1211887.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-    promo: "10% off your first order",
+    image: require("../assets/fotoRestaurante/motecol.jpg"),
+    description: "Restaurante tradicional ecuatoriano especializado en mote y platos típicos",
+    promo: "Dos refrescos gratis con tu pedido",
     menu: [
       {
         id: 13,
-        name: "Veggie Bowl",
-        description: "Quinoa, roasted vegetables, avocado, and tahini dressing",
+        name: "Bolon de Plátano",
+        description: "Bolon de plátano verde con ensalada de vegetales y salsa de ají",
         price: 13.99,
-        image: "https://images.pexels.com/photos/1211887/pexels-photo-1211887.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-        category: "bowls"
+        image: require("../assets/fotoComida-5/bolon.jpg"),
+        category: "Bolones"
       },
       {
         id: 14,
-        name: "Falafel Wrap",
-        description: "Falafel, hummus, vegetables, and tahini in a whole wheat wrap",
+        name: "Mote con chicharrón",
+        description: "Mote con chicharrón y ensalada de cebolla",
         price: 11.99,
-        image: "https://images.pexels.com/photos/1618898/pexels-photo-1618898.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-        category: "wraps"
+        image: require("../assets/fotoComida-5/motechichaa.jpg"),
+        category: "Mote"
       }
     ]
   }
@@ -184,33 +188,33 @@ export const mockRestaurants = [
 export const mockCategories = [
   {
     id: 1,
-    name: "Fast Food",
-    image: "https://images.pexels.com/photos/1633578/pexels-photo-1633578.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
+    name: "Motes",
+    image: require("../assets/fotoComida-5/motechichaa.jpg")
   },
   {
     id: 2,
-    name: "Pizza",
-    image: "https://images.pexels.com/photos/4109111/pexels-photo-4109111.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
+    name: "Fritadas",
+    image: require("../assets/fotoComida-1/fritada.jpg")
   },
   {
     id: 3,
-    name: "Mexican",
-    image: "https://images.pexels.com/photos/4958641/pexels-photo-4958641.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
+    name: "Fritos",
+    image: require("../assets/fotoComida-2/filetepollo.jpg")
   },
   {
     id: 4,
-    name: "Sushi",
-    image: "https://images.pexels.com/photos/2098085/pexels-photo-2098085.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
+    name: "Sopas",
+    image: require("../assets/fotoComida-4/encebollado.jpg")
   },
   {
     id: 5,
-    name: "Vegetarian",
-    image: "https://images.pexels.com/photos/1211887/pexels-photo-1211887.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
+    name: "Pizzas",
+    image: require("../assets/fotoComida-3/pizzapim.jpg")
   },
   {
     id: 6,
-    name: "Desserts",
-    image: "https://images.pexels.com/photos/1126359/pexels-photo-1126359.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
+    name: "Postres",
+    image: require("../assets/fotoComida-3/cocteldec.jpg")
   }
 ];
 
@@ -218,27 +222,27 @@ export const mockCategories = [
 export const mockPromotions = [
   {
     id: 1,
-    title: "50% OFF Your First Order",
+    title: "50% en tu primer pedido",
     description: "Use code WELCOME50",
     backgroundColor: "#FFF0E6",
     textColor: "#E85D04",
-    image: "https://images.pexels.com/photos/2103949/pexels-photo-2103949.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
+    image: require("../assets/fotoComida-5/bolon.jpg")
   },
   {
     id: 2,
-    title: "Free Delivery on Orders $15+",
-    description: "Limited time offer",
+    title: "Pedidos a Domicilio gratis en Agosto",
+    description: "Compras superiores a $20",
     backgroundColor: "#E6F7EF",
     textColor: "#33A95B",
-    image: "https://images.pexels.com/photos/2280545/pexels-photo-2280545.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
+    image: require("../assets/fotoComida-1/fanesca.jpg")
   },
   {
     id: 3,
-    title: "Support Local Businesses",
-    description: "15% off local restaurants",
+    title: "Ayuda a locales tradicionales",
+    description: "Deja una propina a los restaurantes locales",
     backgroundColor: "#E6F1FF",
     textColor: "#2B80FF",
-    image: "https://images.pexels.com/photos/3184188/pexels-photo-3184188.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
+    image: require("../assets/fotoComida-1/churasco.jpg")
   }
 ];
 
@@ -247,8 +251,8 @@ export const mockOrders = [
   {
     id: 1001,
     restaurantId: 1,
-    restaurantName: "Burger Palace",
-    restaurantImage: "https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
+    restaurantName: "Cafe San Blas",
+    image: require("../assets/fotoComida-3/cocteldec.jpg"),
     status: "delivering",
     date: new Date().toISOString(),
     total: 41.45,
@@ -256,20 +260,20 @@ export const mockOrders = [
     items: [
       {
         id: 1,
-        name: "Classic Burger",
+        name: "Postre de coctel de chocolate",
         price: 12.99,
         quantity: 2,
-        notes: "No onions please"
+        notes: "Sin crema de chocolate"
       },
       {
         id: 4,
-        name: "French Fries",
+        name: "Americano",
         price: 4.99,
         quantity: 1
       },
       {
         id: 6,
-        name: "Chocolate Milkshake",
+        name: "Cruasan de Mantequilla",
         price: 5.99,
         quantity: 1
       }
@@ -278,8 +282,8 @@ export const mockOrders = [
   {
     id: 1002,
     restaurantId: 2,
-    restaurantName: "Pizza Express",
-    restaurantImage: "https://images.pexels.com/photos/1146760/pexels-photo-1146760.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
+    restaurantName: "Corvinas de Don Jimmy",
+    image: require("../assets/fotoComida-4/corvin.jpg"),
     status: "completed",
     date: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // Yesterday
     total: 33.97,
@@ -287,14 +291,14 @@ export const mockOrders = [
     items: [
       {
         id: 7,
-        name: "Margherita Pizza",
+        name: "Corvina a la Parrilla",
         price: 14.99,
         quantity: 1
       },
       {
         id: 8,
-        name: "Pepperoni Pizza",
-        price: 16.99,
+        name: "Porcion de papas",
+        price: 1.99,
         quantity: 1
       }
     ]
@@ -302,8 +306,8 @@ export const mockOrders = [
   {
     id: 1003,
     restaurantId: 3,
-    restaurantName: "Taco Fiesta",
-    restaurantImage: "https://images.pexels.com/photos/4958641/pexels-photo-4958641.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
+    restaurantName: "Hasta la Vuelta!, Señor",
+    image: require("../assets/fotoComida-1/secochivo.jpg"),
     status: "preparing",
     date: new Date().toISOString(),
     total: 25.97,
@@ -311,14 +315,14 @@ export const mockOrders = [
     items: [
       {
         id: 9,
-        name: "Beef Tacos",
+        name: "Seco de Chivo",
         price: 12.99,
         quantity: 1
       },
       {
         id: 10,
-        name: "Chicken Quesadilla",
-        price: 11.99,
+        name: "Limonada",
+        price: 1.99,
         quantity: 1
       }
     ]
@@ -326,8 +330,8 @@ export const mockOrders = [
   {
     id: 1004,
     restaurantId: 4,
-    restaurantName: "Sushi World",
-    restaurantImage: "https://images.pexels.com/photos/2098085/pexels-photo-2098085.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
+    restaurantName: "Las menestras de la almagro",
+    image: require("../assets/fotoRestaurante/lasmestras.jpg"),
     status: "cancelled",
     date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
     total: 28.97,
@@ -335,13 +339,13 @@ export const mockOrders = [
     items: [
       {
         id: 11,
-        name: "California Roll",
+        name: "Asado de carne",
         price: 8.99,
         quantity: 2
       },
       {
         id: 12,
-        name: "Salmon Nigiri",
+        name: "Costillas BBQ",
         price: 9.99,
         quantity: 1
       }
@@ -350,8 +354,8 @@ export const mockOrders = [
   {
     id: 1005,
     restaurantId: 5,
-    restaurantName: "Green Garden",
-    restaurantImage: "https://images.pexels.com/photos/1211887/pexels-photo-1211887.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
+    restaurantName: "Mote Colonial",
+    image: require("../assets/fotoRestaurante/motecol.jpg"),
     status: "ready",
     date: new Date().toISOString(),
     total: 27.97,
@@ -359,13 +363,13 @@ export const mockOrders = [
     items: [
       {
         id: 13,
-        name: "Veggie Bowl",
+        name: "Mote con Chicharrón",
         price: 13.99,
         quantity: 1
       },
       {
         id: 14,
-        name: "Falafel Wrap",
+        name: "Bolón de Plátano",
         price: 11.99,
         quantity: 1
       }
@@ -379,7 +383,7 @@ export const mockProducts = [
     id: 1,
     name: "Classic Burger",
     price: 12.99,
-    image: "https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
+    image: require("../assets/fotoComida-1/fanesca.jpg"),
     category: "burgers",
     available: true,
     sales: 127
@@ -388,7 +392,7 @@ export const mockProducts = [
     id: 2,
     name: "Bacon Deluxe",
     price: 14.99,
-    image: "https://images.pexels.com/photos/3738730/pexels-photo-3738730.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
+    image: require("../assets/fotoComida-1/fanesca.jpg"),
     category: "burgers",
     available: true,
     sales: 98
@@ -397,7 +401,7 @@ export const mockProducts = [
     id: 3,
     name: "Veggie Burger",
     price: 13.99,
-    image: "https://images.pexels.com/photos/1633578/pexels-photo-1633578.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
+    image: require("../assets/fotoComida-1/fanesca.jpg"),
     category: "burgers",
     available: true,
     sales: 76
@@ -406,7 +410,7 @@ export const mockProducts = [
     id: 4,
     name: "French Fries",
     price: 4.99,
-    image: "https://images.pexels.com/photos/1583884/pexels-photo-1583884.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
+    image: require("../assets/fotoComida-1/fanesca.jpg"),
     category: "sides",
     available: true,
     sales: 243
@@ -415,7 +419,7 @@ export const mockProducts = [
     id: 5,
     name: "Onion Rings",
     price: 5.99,
-    image: "https://images.pexels.com/photos/9922855/pexels-photo-9922855.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
+    image: require("../assets/fotoComida-1/fanesca.jpg"),
     category: "sides",
     available: true,
     sales: 156
@@ -424,7 +428,7 @@ export const mockProducts = [
     id: 6,
     name: "Chocolate Milkshake",
     price: 5.99,
-    image: "https://images.pexels.com/photos/3727250/pexels-photo-3727250.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
+    image: require("../assets/fotoComida-1/fanesca.jpg"),
     category: "drinks",
     available: true,
     sales: 187

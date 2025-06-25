@@ -10,7 +10,7 @@ interface MenuItem {
   name: string;
   description: string;
   price: number;
-  image: string;
+  image: number; // Cambiado a number para imágenes locales (require)
   category: string;
 }
 
@@ -22,7 +22,7 @@ interface Restaurant {
   reviewCount: number;
   distance: number;
   deliveryTime: string;
-  image: string;
+  image: number; // Cambiado a number para imágenes locales (require)
   menu: MenuItem[];
   description?: string;
   promo?: string | null;
@@ -42,7 +42,7 @@ interface CartItems {
 function MenuItem({ item, onAdd, onRemove, quantity = 0 }: MenuItemProps) {
   return (
     <View style={styles.menuItem}>
-      <Image source={{ uri: item.image }} style={styles.menuItemImage} />
+      <Image source={item.image} style={styles.menuItemImage} />
       <View style={styles.menuItemInfo}>
         <Text style={styles.menuItemName}>{item.name}</Text>
         <Text style={styles.menuItemDescription}>{item.description}</Text>
@@ -132,7 +132,7 @@ export default function RestaurantScreen() {
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        <Image source={{ uri: restaurant.image }} style={styles.coverImage} />
+        <Image source={restaurant.image} style={styles.coverImage} />
         
         <TouchableOpacity 
           style={styles.backButton}

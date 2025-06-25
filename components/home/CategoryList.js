@@ -3,12 +3,17 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { mockCategories } from '@/data/mockData';
 
 function CategoryItem({ category, onPress }) {
+  // Permitir require (local) o string (remoto)
+  const imageSource = typeof category.image === 'number'
+    ? category.image
+    : { uri: category.image };
+    
   return (
     <TouchableOpacity 
       style={styles.categoryItem}
       onPress={() => onPress(category)}
     >
-      <Image source={{ uri: category.image }} style={styles.categoryImage} />
+      <Image source={imageSource} style={styles.categoryImage} />
       <Text style={styles.categoryName}>{category.name}</Text>
     </TouchableOpacity>
   );

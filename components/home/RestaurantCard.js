@@ -4,13 +4,17 @@ import { useTranslation } from '@/hooks/useTranslation';
 
 export default function RestaurantCard({ restaurant, onPress }) {
   const { t } = useTranslation();
+  // Permitir require (local) o string (remoto)
+  const imageSource = typeof restaurant.image === 'number'
+    ? restaurant.image
+    : { uri: restaurant.image };
   
   return (
     <TouchableOpacity 
       style={styles.container}
       onPress={onPress}
     >
-      <Image source={{ uri: restaurant.image }} style={styles.image} />
+      <Image source={imageSource} style={styles.image} />
       
       {restaurant.promo && (
         <View style={styles.promoTag}>

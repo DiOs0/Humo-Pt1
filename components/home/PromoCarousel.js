@@ -31,31 +31,37 @@ export default function PromoCarousel() {
     return () => clearInterval(intervalId);
   }, [activeIndex]);
   
-  const renderItem = ({ item }) => (
-    <TouchableOpacity 
-      style={[
-        styles.promoItem, 
-        { backgroundColor: item.backgroundColor }
-      ]}
-    >
-      <View style={styles.promoContent}>
-        <Text style={[styles.promoTitle, { color: item.textColor }]}>
-          {item.title}
-        </Text>
-        <Text style={[styles.promoDescription, { color: item.textColor }]}>
-          {item.description}
-        </Text>
-        <TouchableOpacity 
-          style={[styles.promoButton, { borderColor: item.textColor }]}
-        >
-          <Text style={[styles.promoButtonText, { color: item.textColor }]}>
-            Ver Todo
+  const renderItem = ({ item }) => {
+    // Permitir require (local) o string (remoto)
+    const imageSource = typeof item.image === 'number'
+      ? item.image
+      : { uri: item.image };
+    return (
+      <TouchableOpacity 
+        style={[
+          styles.promoItem, 
+          { backgroundColor: item.backgroundColor }
+        ]}
+      >
+        <View style={styles.promoContent}>
+          <Text style={[styles.promoTitle, { color: item.textColor }]}>
+            {item.title}
           </Text>
-        </TouchableOpacity>
-      </View>
-      <Image source={{ uri: item.image }} style={styles.promoImage} />
-    </TouchableOpacity>
-  );
+          <Text style={[styles.promoDescription, { color: item.textColor }]}>
+            {item.description}
+          </Text>
+          <TouchableOpacity 
+            style={[styles.promoButton, { borderColor: item.textColor }]}
+          >
+            <Text style={[styles.promoButtonText, { color: item.textColor }]}>
+              Ver Todo
+            </Text>
+          </TouchableOpacity>
+        </View>
+        <Image source={imageSource} style={styles.promoImage} />
+      </TouchableOpacity>
+    );
+  };
   
   const handleScroll = (event) => {
     const scrollPosition = event.nativeEvent.contentOffset.x;
