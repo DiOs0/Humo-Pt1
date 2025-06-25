@@ -1,31 +1,40 @@
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from '@/hooks/useTranslation';
 import { Store, User } from 'lucide-react-native';
+import LogoImage from '../assets/fotos-portadaLogo/NegocioPopularEF2.png';
+
+
+
 
 export default function WelcomeScreen() {
   const router = useRouter();
   const { toggleLanguage, currentLanguage } = useTranslation();
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#E85D04' }}>
     <LinearGradient
       colors={['#FF8C42', '#E85D04']}
       style={styles.container}
     >
+      
       <View style={styles.logoContainer}>
         <Image
-          source={{ uri: 'https://images.pexels.com/photos/5907599/pexels-photo-5907599.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1' }}
+          source={LogoImage}
           style={styles.logoBackground}
+
         />
-        <View style={styles.logoOverlay}>
-          <Text style={styles.logoText}>EasyFood</Text>
-        </View>
+        
+      
       </View>
+      
+      
 
       <View style={styles.contentContainer}>
-        <Text style={styles.slogan}>Tu comida favorita a un click</Text>
-        <Text style={styles.subText}>Apoya a los negocios locales</Text>
+        <Text style={styles.slogan}>"Apoya lo local en cada Bocado"</Text>
+      <Text style={styles.subText}>¡Bienvenido!</Text>
 
         <View style={styles.buttonContainer}>
           <TouchableOpacity
@@ -55,6 +64,7 @@ export default function WelcomeScreen() {
         </TouchableOpacity>
       </View>
     </LinearGradient>
+    </SafeAreaView>
   );
 }
 
@@ -72,7 +82,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     position: 'absolute',
-    opacity: 0.5,
+    opacity: 0.85,
   },
   logoOverlay: {
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
