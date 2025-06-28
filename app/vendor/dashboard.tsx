@@ -1,11 +1,9 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Platform, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowUpRight, ChevronRight, DollarSign, Package, ShoppingBag, Star, TrendingUp, Users } from 'lucide-react-native';
-import { useTranslation } from '@/hooks/useTranslation';
-import { mockOrders, mockProducts } from '@/data/mockData';
 
-interface StatCardProps {
+interface StatData {
   icon: any;
   title: string;
   value: string;
@@ -13,412 +11,441 @@ interface StatCardProps {
   trendValue: number;
 }
 
-// Componente simulación de gráfico (en una app real, usaríamos una librería de gráficos)
-function Chart() {
-  return (
-    <View style={styles.chartContainer}>
-      <View style={styles.chartBars}>
-        <View style={[styles.chartBar, { height: 60 }]} />
-        <View style={[styles.chartBar, { height: 100 }]} />
-        <View style={[styles.chartBar, { height: 80 }]} />
-        <View style={[styles.chartBar, { height: 120 }]} />
-        <View style={[styles.chartBar, { height: 90 }]} />
-        <View style={[styles.chartBar, { height: 150 }]} />
-        <View style={[styles.chartBar, { height: 110 }]} />
-      </View>
-      <View style={styles.chartLabels}>
-        <Text style={styles.chartLabel}>Lun</Text>
-        <Text style={styles.chartLabel}>Mar</Text>
-        <Text style={styles.chartLabel}>Mié</Text>
-        <Text style={styles.chartLabel}>Jue</Text>
-        <Text style={styles.chartLabel}>Vie</Text>
-        <Text style={styles.chartLabel}>Sáb</Text>
-        <Text style={styles.chartLabel}>Dom</Text>
-      </View>
-    </View>
-  );
-}
-
-function StatCard({ icon, title, value, trend, trendValue }: StatCardProps) {
-  const IconComponent = icon;
-  const isPositiveTrend = trendValue >= 0;
-  
-  return (
-    <View style={styles.statCard}>
-      <View style={styles.statIconContainer}>
-        <IconComponent size={20} color="#E85D04" />
-      </View>
-      <Text style={styles.statTitle}>{title}</Text>
-      <Text style={styles.statValue}>{value}</Text>
-      <View style={[
-        styles.trendContainer,
-        { backgroundColor: isPositiveTrend ? '#E6F7EF' : '#FDEEEE' }
-      ]}>
-        <ArrowUpRight 
-          size={16}
-          color={isPositiveTrend ? '#33A95B' : '#E53935'}
-          style={{ transform: [{ rotate: isPositiveTrend ? '0deg' : '90deg' }] }}
-        />
-        <Text style={[
-          styles.trendText,
-          { color: isPositiveTrend ? '#33A95B' : '#E53935' }
-        ]}>
-          {trend}
-        </Text>
-      </View>
-      <Text style={styles.statTitle}>{title}</Text>
-      <Text style={styles.statValue}>{value}</Text>
-      
-      <View style={[
-        styles.trendContainer,
-        { backgroundColor: isPositiveTrend ? '#E6F7EF' : '#FDEEEE' }
-      ]}>
-        <ArrowUpRight 
-          size={16} 
-          color={isPositiveTrend ? '#33A95B' : '#E53935'} 
-          style={{ transform: [{ rotate: isPositiveTrend ? '0deg' : '90deg' }] }}
-        />
-        <Text style={[
-          styles.trendText,
-          { color: isPositiveTrend ? '#33A95B' : '#E53935' }
-        ]}>
-          {trend}
-        </Text>
-      </View>
-    </View>
-  );
+interface MenuItem {
+  id: string;
+  name: string;
+  price: string;
+  orderCount: number;
+  rating: number;
 }
 
 export default function VendorDashboard() {
   const router = useRouter();
-  const orderStats = {
-    total: mockOrders.length,
-    pending: mockOrders.filter(o => o.status === 'preparing').length,
-    completed: mockOrders.filter(o => o.status === 'completed').length
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Datos del restaurante
+  const restaurantData = {
+    name: "Mote Colonial",
+    rating: 4.8,
+    totalReviews: 312,
+    totalOrders: 1842,
+    address: "Centro Histórico, Quito",
+    since: "2018"
   };
 
-  return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.welcomeText}>¡Bienvenido de vuelta!</Text>
-          <Text style={styles.restaurantName}>Burger Palace</Text>
-        </View>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.switchText}>Volver a Cliente</Text>
-        </TouchableOpacity>
-      </View>
+  // Datos de ventas diarias simuladas para la última semana (en dólares)
+  const weeklyData = [
+    { day: 'Lun', sales: 425, orders: 85 },
+    { day: 'Mar', sales: 380, orders: 76 },
+    { day: 'Mié', sales: 395, orders: 79 },
+    { day: 'Jue', sales: 450, orders: 90 },
+    { day: 'Vie', sales: 580, orders: 116 },
+    { day: 'Sáb', sales: 725, orders: 145 },
+    { day: 'Dom', sales: 650, orders: 130 },
+  ];
 
-      <View style={styles.statsGrid}>
-        <StatCard
-          icon={DollarSign}
-          title="Ventas del Día"
-          value="$1,458.50"
-          trend="↑ 12% vs ayer"
-          trendValue={12}
-        />
-        <StatCard
-          icon={ShoppingBag}
-          title="Pedidos Nuevos"
-          value={orderStats.pending.toString()}
-          trend="↑ 8% vs ayer"
-          trendValue={8}
-        />
-        <StatCard
-          icon={Package}
-          title="Pedidos Completados"
-          value={orderStats.completed.toString()}
-          trend="↓ 5% vs ayer"
-          trendValue={-5}
-        />
-        <StatCard
-          icon={Star}
-          title="Calificación"
-          value="4.8"
-          trend="↑ 0.2 vs mes anterior"
-          trendValue={0.2}
-        />
-      </View>
+  // Platos más populares
+  const popularItems: MenuItem[] = [
+    { id: '1', name: 'Mote con Chicharrón', price: '$3.50', orderCount: 248, rating: 4.9 },
+    { id: '2', name: 'Combo Familiar Mote Mixto', price: '$12.50', orderCount: 156, rating: 4.8 },
+    { id: '3', name: 'Mote Pillo Especial', price: '$4.25', orderCount: 195, rating: 4.7 },
+    { id: '4', name: 'Mote Sucio con Fritada', price: '$5.00', orderCount: 178, rating: 4.8 },
+    { id: '5', name: 'Motecito del Chef', price: '$6.50', orderCount: 134, rating: 4.9 },
+  ];
 
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Resumen de Ventas</Text>
-          <TouchableOpacity style={styles.seeAllButton}>
-            <Text style={styles.seeAllText}>Ver Detalles</Text>
-            <ChevronRight size={16} color="#666" />
-          </TouchableOpacity>
-        </View>
-        <Chart />
-      </View>
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
 
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Pedidos Activos</Text>
-          <TouchableOpacity style={styles.seeAllButton}>
-            <Text style={styles.seeAllText}>Ver Todos</Text>
-            <ChevronRight size={16} color="#666" />
-          </TouchableOpacity>
-        </View>
-        
-        {mockOrders
-          .filter(order => ['preparing', 'ready', 'delivering'].includes(order.status))
-          .slice(0, 3)
-          .map(order => (
-            <TouchableOpacity key={order.id} style={styles.orderCard}>
-              <View style={styles.orderInfo}>
-                <Text style={styles.orderNumber}>Pedido #{order.id}</Text>
-                <Text style={styles.orderItems}>
-                  {order.items.map(item => item.name).join(', ')}
-                </Text>
-                <Text style={styles.orderCustomer}>{order.customerName}</Text>
-              </View>
-              <View style={styles.orderStatus}>
-                <Text style={[
-                  styles.statusText,
-                  { color: order.status === 'preparing' ? '#FF8C42' : '#33A95B' }
-                ]}>
-                  {order.status === 'preparing' ? 'Preparando' : 'Listo'}
-                </Text>
-                <Text style={styles.orderTotal}>${order.total.toFixed(2)}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-      </View>
+  // Estadísticas principales
+  const stats: StatData[] = [
+    {
+      icon: DollarSign,
+      title: 'Ventas de Hoy',
+      value: '$485.50',
+      trend: '+12.8%',
+      trendValue: 12.8
+    },
+    {
+      icon: ShoppingBag,
+      title: 'Pedidos del Día',
+      value: '97',
+      trend: '+15.4%',
+      trendValue: 15.4
+    },
+    {
+      icon: Users,
+      title: 'Clientes Nuevos',
+      value: '28',
+      trend: '+22.7%',
+      trendValue: 22.7
+    },
+    {
+      icon: Star,
+      title: 'Satisfacción',
+      value: '4.8',
+      trend: '+0.1',
+      trendValue: 0.1
+    }
+  ];
 
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Menú</Text>
-          <TouchableOpacity style={styles.seeAllButton}>
-            <Text style={styles.seeAllText}>Editar Menú</Text>
-            <ChevronRight size={16} color="#666" />
-          </TouchableOpacity>
+  const renderStats = () => {
+    return stats.map((stat, index) => (
+      <View key={index} style={styles.statCard}>
+        <View style={styles.statHeader}>
+          <View style={styles.statIconContainer}>
+            <stat.icon size={20} color="#E85D04" />
+          </View>
+          <Text style={styles.statTitle}>{stat.title}</Text>
         </View>
-        
-        {mockProducts.slice(0, 3).map(product => (
-          <TouchableOpacity key={product.id} style={styles.menuItem}>
-            <Image source={{ uri: product.image }} style={styles.menuItemImage} />
-            <View style={styles.menuItemInfo}>
-              <Text style={styles.menuItemName}>{product.name}</Text>
-              <Text style={styles.menuItemDescription}>{`${product.category} • ${product.available ? 'Disponible' : 'No disponible'}`}</Text>
-              <Text style={styles.menuItemPrice}>${product.price.toFixed(2)}</Text>
+        <View style={styles.statContent}>
+          <Text style={styles.statValue}>{stat.value}</Text>
+          <View style={[
+            styles.trendContainer,
+            { backgroundColor: stat.trendValue >= 0 ? '#E8F5E9' : '#FFEBEE' }
+          ]}>
+            <ArrowUpRight 
+              size={16} 
+              color={stat.trendValue >= 0 ? '#4CAF50' : '#F44336'}
+              style={stat.trendValue < 0 ? { transform: [{ rotate: '90deg' }] } : undefined}
+            />
+            <Text style={[
+              styles.trendValue,
+              { color: stat.trendValue >= 0 ? '#4CAF50' : '#F44336' }
+            ]}>{stat.trend}</Text>
+          </View>
+        </View>
+      </View>
+    ));
+  };
+
+  const renderSalesChart = () => {
+    const maxSale = Math.max(...weeklyData.map(d => d.sales));
+    return (
+      <View style={styles.chartContainer}>
+        <View style={styles.chartBars}>
+          {weeklyData.map((data, index) => (
+            <View key={index} style={styles.barWrapper}>
+              <View 
+                style={[
+                  styles.bar,
+                  { height: (data.sales / maxSale) * 150 }
+                ]} 
+              />
+              <Text style={styles.barLabel}>{data.day}</Text>
             </View>
-          </TouchableOpacity>
-        ))}
+          ))}
+        </View>
+        <View style={styles.chartLabels}>
+          <Text style={styles.chartLabel}>Ventas diarias última semana</Text>
+        </View>
       </View>
-    </ScrollView>
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Cargando panel de {restaurantData.name}...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.headerTitle}>{restaurantData.name}</Text>
+            <Text style={styles.headerSubtitle}>{restaurantData.address}</Text>
+            <View style={styles.ratingContainer}>
+              <Star size={16} color="#FFB800" fill="#FFB800" />
+              <Text style={styles.ratingText}>
+                {restaurantData.rating} · {restaurantData.totalReviews} reseñas · Desde {restaurantData.since}
+              </Text>
+            </View>
+          </View>
+          <TouchableOpacity 
+            style={styles.settingsButton}
+            onPress={() => {/* Implementar configuración */}}
+          >
+            <Text style={styles.settingsButtonText}>Ajustes</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.statsContainer}>
+          {renderStats()}
+        </View>
+
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Resumen de Ventas</Text>
+          {renderSalesChart()}
+          <View style={styles.chartSummary}>
+            <Text style={styles.chartSummaryText}>
+              Total de la semana: ${weeklyData.reduce((sum, day) => sum + day.sales, 0).toFixed(2)}
+            </Text>
+            <Text style={styles.chartSummaryText}>
+              Promedio diario: ${(weeklyData.reduce((sum, day) => sum + day.sales, 0) / 7).toFixed(2)}
+            </Text>
+            <Text style={styles.chartSummaryText}>
+              Mejor día: {weeklyData.reduce((best, day) => day.sales > best.sales ? day : best).day} (${weeklyData.reduce((best, day) => day.sales > best.sales ? day : best).sales})
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Platos Más Vendidos</Text>
+          <View style={styles.menuList}>
+            {popularItems.map((item, index) => (
+              <View key={item.id} style={styles.menuItem}>
+                <View style={styles.menuItemInfo}>
+                  <Text style={styles.menuItemName}>{item.name}</Text>
+                  <Text style={styles.menuItemPrice}>{item.price}</Text>
+                </View>
+                <View style={styles.menuItemStats}>
+                  <View style={styles.menuItemRating}>
+                    <Star size={14} color="#FFB800" fill="#FFB800" />
+                    <Text style={styles.ratingValue}>{item.rating}</Text>
+                  </View>
+                  <Text style={styles.menuItemOrders}>{item.orderCount} pedidos</Text>
+                  <ChevronRight size={20} color="#666" />
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+
+
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9F9F9',
+    backgroundColor: '#F8F9FA',
+  },
+  scrollView: {
+    flex: 1,
   },
   header: {
+    padding: 20,
+    backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 60,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    backgroundColor: 'white',
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: '#E9ECEF',
   },
-  welcomeText: {
-    fontSize: 18,
-    fontWeight: '500',
-    color: '#333',
-  },
-  restaurantName: {
+  headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#E85D04',
+    color: '#212529',
+    marginBottom: 4,
   },
-  switchText: {
+  headerSubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: '#6C757D',
+    marginBottom: 8,
   },
-  statsGrid: {
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  ratingText: {
+    marginLeft: 6,
+    color: '#495057',
+    fontSize: 14,
+  },
+  settingsButton: {
+    backgroundColor: '#E9ECEF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  settingsButtonText: {
+    color: '#495057',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  statsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 24,
+    padding: 10,
+    gap: 10,
   },
   statCard: {
-    width: '48%',
-    backgroundColor: 'white',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
+    width: '47%',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  statIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    backgroundColor: '#FFF0E6',
-    justifyContent: 'center',
+  statHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
   },
+  statIconContainer: {
+    backgroundColor: '#FFF3E0',
+    padding: 8,
+    borderRadius: 8,
+    marginRight: 8,
+  },
   statTitle: {
+    color: '#495057',
     fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
+    flex: 1,
+  },
+  statContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
   },
   statValue: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
+    color: '#212529',
   },
   trendContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
-  trendText: {
+  trendValue: {
     fontSize: 12,
+    marginLeft: 2,
     fontWeight: '500',
-    marginLeft: 4,
   },
-  section: {
-    backgroundColor: 'white',
+  sectionContainer: {
+    backgroundColor: '#FFFFFF',
+    margin: 10,
     borderRadius: 12,
     padding: 16,
-    marginBottom: 24,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
+    shadowRadius: 4,
+    elevation: 3,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-  },
-  seeAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  seeAllText: {
-    fontSize: 14,
-    color: '#E85D04',
+    fontWeight: 'bold',
+    color: '#212529',
+    marginBottom: 16,
   },
   chartContainer: {
     height: 200,
-    marginBottom: 8,
+    marginTop: 10,
   },
   chartBars: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'flex-end',
-    flex: 1,
-    paddingBottom: 8,
+    justifyContent: 'space-between',
+    height: 150,
+    paddingHorizontal: 10,
   },
-  chartBar: {
-    width: 24,
-    backgroundColor: '#FFD166',
-    borderRadius: 4,
+  barWrapper: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  bar: {
+    width: 20,
+    backgroundColor: '#E85D04',
+    borderRadius: 10,
+    marginHorizontal: 4,
+  },
+  barLabel: {
+    marginTop: 8,
+    fontSize: 12,
+    color: '#6C757D',
   },
   chartLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 16,
   },
   chartLabel: {
-    fontSize: 12,
-    color: '#999',
-    textAlign: 'center',
-    width: 24,
+    fontSize: 14,
+    color: '#495057',
   },
-  orderCard: {
-    backgroundColor: 'white',
+  chartSummary: {
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: '#F8F9FA',
     borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
   },
-  orderInfo: {
+  chartSummaryText: {
+    fontSize: 14,
+    color: '#495057',
     marginBottom: 8,
   },
-  orderNumber: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  orderItems: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 4,
-  },
-  orderCustomer: {
-    fontSize: 12,
-    color: '#666',
-  },
-  orderStatus: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  statusText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  orderTotal: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+  menuList: {
+    marginTop: 8,
   },
   menuItem: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  menuItemImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 8,
+    borderBottomColor: '#E9ECEF',
   },
   menuItemInfo: {
     flex: 1,
-    marginLeft: 12,
   },
   menuItemName: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#333',
-  },
-  menuItemDescription: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 2,
+    fontSize: 16,
+    color: '#212529',
+    marginBottom: 4,
   },
   menuItemPrice: {
     fontSize: 14,
     color: '#E85D04',
     fontWeight: '500',
-    marginTop: 4,
+  },
+  menuItemStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  menuItemRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3E0',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  ratingValue: {
+    fontSize: 12,
+    color: '#E85D04',
+    fontWeight: '500',
+    marginLeft: 4,
+  },
+  menuItemOrders: {
+    fontSize: 14,
+    color: '#6C757D',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#495057',
+    marginTop: 12,
   },
 });

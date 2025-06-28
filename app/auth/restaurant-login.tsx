@@ -10,8 +10,8 @@ export default function RestaurantLoginScreen() {
   const [ruc, setRuc] = useState('');
   const [responsableName, setResponsableName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
   const handleSubmit = () => {
-    // En una app real, esto validaría los inputs y haría llamadas a la API
     console.log({ email, password, ruc, responsableName });
     router.replace('/vendor/dashboard');
   };
@@ -31,6 +31,7 @@ export default function RestaurantLoginScreen() {
           <TouchableOpacity 
             style={styles.backButton}
             onPress={() => router.back()}
+            accessibilityLabel="Volver"
           >
             <ArrowLeft size={24} color="#333" />
           </TouchableOpacity>
@@ -86,6 +87,7 @@ export default function RestaurantLoginScreen() {
               <TouchableOpacity
                 style={styles.passwordToggle}
                 onPress={togglePasswordVisibility}
+                accessibilityLabel={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
               >
                 {showPassword ? (
                   <EyeOff size={20} color="#666" />
@@ -103,10 +105,12 @@ export default function RestaurantLoginScreen() {
             <Text style={styles.submitButtonText}>Ingresar</Text>
           </TouchableOpacity>
 
-          <View style={styles.footerText}>
-            <Text style={styles.footerLabel}>
-              ¿Aún no registras tu restaurante?
-            </Text>            <TouchableOpacity onPress={() => router.push('/auth/restaurant-register' as any)}>
+          <View style={styles.footerContainer}>
+            <Text style={styles.footerText}>¿Aún no registras tu restaurante? </Text>
+            <TouchableOpacity 
+              onPress={() => router.push('/auth/restaurant-register')}
+              accessibilityLabel="Registrar restaurante"
+            >
               <Text style={styles.footerLink}>Regístrate aquí</Text>
             </TouchableOpacity>
           </View>
@@ -165,6 +169,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: '#F5F5F5',
     borderRadius: 8,
+    alignItems: 'center',
   },
   passwordInput: {
     flex: 1,
@@ -182,20 +187,20 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
-    marginTop: 24,
+    marginTop: 32,
   },
   submitButtonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
   },
-  footerText: {
+  footerContainer: {
     marginTop: 24,
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 8,
+    alignItems: 'center',
   },
-  footerLabel: {
+  footerText: {
     color: '#666',
     fontSize: 16,
   },

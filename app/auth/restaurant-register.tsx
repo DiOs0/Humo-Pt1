@@ -1,18 +1,20 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Camera, ImageIcon, Plus } from 'lucide-react-native';
-import * as ImagePicker from 'expo-image-picker';
+import { ArrowLeft } from 'lucide-react-native';
 
-interface RestaurantImage {
-  uri: string;
-  type: string;
-  name: string;
+interface FormData {
+  restaurantName: string;
+  responsableName: string;
+  email: string;
+  phone: string;
+  address: string;
+  ruc: string;
 }
 
 export default function RestaurantRegisterScreen() {
   const router = useRouter();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     restaurantName: '',
     responsableName: '',
     email: '',
@@ -20,50 +22,62 @@ export default function RestaurantRegisterScreen() {
     address: '',
     ruc: '',
   });
-  const [images, setImages] = useState<RestaurantImage[]>([]);
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: keyof FormData, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
   };
-  const pickImage = async () => {
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        alert('Se necesita permiso para acceder a la galería');
-        return;
-      }
 
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [16, 9],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        const newImage = {
-          uri: result.assets[0].uri,
-          type: 'image/jpeg',
-          name: `restaurant_photo_${Date.now()}.jpg`,
-        };
-        setImages(prev => [...prev, newImage]);
-      }
-    } catch (error) {
-      console.error('Error al seleccionar imagen:', error);
+  const validateForm = (): boolean => {
+    if (!formData.restaurantName.trim()) {
+      Alert.alert('Error', 'Por favor ingrese el nombre del restaurante');
+      return false;
     }
+    if (!formData.responsableName.trim()) {
+      Alert.alert('Error', 'Por favor ingrese el nombre del responsable');
+      return false;
+    }
+    if (!formData.email.trim() || !formData.email.includes('@')) {
+      Alert.alert('Error', 'Por favor ingrese un correo electrónico válido');
+      return false;
+    }
+    if (!formData.phone.trim() || formData.phone.length < 9) {
+      Alert.alert('Error', 'Por favor ingrese un número de teléfono válido');
+      return false;
+    }
+    if (!formData.address.trim()) {
+      Alert.alert('Error', 'Por favor ingrese la dirección del local');
+      return false;
+    }
+    if (!formData.ruc.trim() || formData.ruc.length !== 13) {
+      Alert.alert('Error', 'Por favor ingrese un RUC válido de 13 dígitos');
+      return false;
+    }
+    return true;
   };
 
-  const removeImage = (index: number) => {
-    setImages(prev => prev.filter((_, i) => i !== index));
-  };
+  const handleSubmit = async () => {
+    if (!validateForm()) {
+      return;
+    }
 
-  const handleSubmit = () => {
-    // Aquí iría la lógica para enviar los datos al servidor
-    console.log('Datos del formulario:', { ...formData, images });
-    router.push('/vendor/dashboard');
+    try {
+      // Aquí iría la lógica para enviar los datos al servidor
+      console.log('Datos del formulario:', formData);
+      
+      // Asegurarnos de que la navegación sea consistente
+      await new Promise(resolve => setTimeout(resolve, 100)); // Pequeño retraso para estabilidad
+      router.replace('/(tabs)');
+      await new Promise(resolve => setTimeout(resolve, 100));
+      router.replace('/vendor/dashboard');
+    } catch (error) {
+      Alert.alert(
+        'Error',
+        'Hubo un problema al registrar el restaurante. Por favor intente nuevamente.'
+      );
+    }
   };
 
   return (
@@ -72,11 +86,15 @@ export default function RestaurantRegisterScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.header}>
           <TouchableOpacity 
             style={styles.backButton}
             onPress={() => router.back()}
+            accessibilityLabel="Volver"
           >
             <ArrowLeft size={24} color="#333" />
           </TouchableOpacity>
@@ -91,6 +109,7 @@ export default function RestaurantRegisterScreen() {
               placeholder="Ingrese el nombre del restaurante"
               value={formData.restaurantName}
               onChangeText={(value) => handleInputChange('restaurantName', value)}
+              autoCapitalize="words"
             />
           </View>
 
@@ -114,6 +133,7 @@ export default function RestaurantRegisterScreen() {
               onChangeText={(value) => handleInputChange('email', value)}
               keyboardType="email-address"
               autoCapitalize="none"
+              autoComplete="email"
             />
           </View>
 
@@ -125,6 +145,7 @@ export default function RestaurantRegisterScreen() {
               value={formData.phone}
               onChangeText={(value) => handleInputChange('phone', value)}
               keyboardType="phone-pad"
+              maxLength={10}
             />
           </View>
 
@@ -137,6 +158,7 @@ export default function RestaurantRegisterScreen() {
               onChangeText={(value) => handleInputChange('address', value)}
               multiline
               numberOfLines={3}
+              textAlignVertical="top"
             />
           </View>
 
@@ -152,42 +174,10 @@ export default function RestaurantRegisterScreen() {
             />
           </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Fotos del Local</Text>
-            <View style={styles.imageGrid}>
-              {images.map((image, index) => (                <View key={index} style={styles.imageContainer}>
-                  <Image 
-                    source={{ uri: image.uri }} 
-                    style={styles.imagePreview} 
-                    accessibilityLabel="Foto del restaurante"
-                  />
-                  <TouchableOpacity
-                    style={styles.removeImageButton}
-                    onPress={() => removeImage(index)}
-                    accessibilityLabel="Eliminar foto"
-                  >
-                    <Text style={styles.removeImageText}>×</Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
-              {images.length < 5 && (
-                <TouchableOpacity 
-                  style={styles.addImageButton}
-                  onPress={pickImage}
-                  accessibilityLabel="Agregar foto del restaurante"
-                >
-                  <View style={styles.addImageContent}>
-                    <Plus size={24} color="#666" />
-                    <Text style={styles.addImageText}>Agregar foto</Text>
-                  </View>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-
           <TouchableOpacity
             style={styles.submitButton}
             onPress={handleSubmit}
+            accessibilityLabel="Registrar restaurante"
           >
             <Text style={styles.submitButtonText}>Registrar Restaurante</Text>
           </TouchableOpacity>
@@ -207,7 +197,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   header: {
-    paddingTop: 60,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
     paddingHorizontal: 24,
     paddingBottom: 24,
     borderBottomWidth: 1,
@@ -217,6 +207,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     marginRight: 16,
+    padding: 4,
   },
   headerTitle: {
     fontSize: 24,
@@ -246,60 +237,6 @@ const styles = StyleSheet.create({
     height: 100,
     textAlignVertical: 'top',
   },
-  imageGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  imageContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 8,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  addImageContent: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    height: '100%',
-  },
-  imagePreview: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  removeImageButton: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  removeImageText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  addImageButton: {
-    width: 100,
-    height: 100,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#E1E1E1',
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addImageText: {
-    color: '#666',
-    marginTop: 4,
-    fontSize: 12,
-  },
   submitButton: {
     backgroundColor: '#E85D04',
     borderRadius: 8,
@@ -309,7 +246,7 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
   },
 });
