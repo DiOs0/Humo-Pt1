@@ -11,6 +11,7 @@ export const mockRestaurants = [
     image: require("../assets/fotoRestaurante/fondoversiongrentehlvs.jpg"),
     promo: "Por la compra de un plato, el segundo a mitad de precio!!",
     description: "Descubrir el sabor típico de Quito, es rescatar del tiempo sus tradiciones, raíces y leyendas",
+    address: "García Moreno N5-16 y Chile, Quito 170401, Ecuador",
     menu: [
       {
         id: 1,
@@ -73,6 +74,7 @@ export const mockRestaurants = [
     image: require("../assets/fotoRestaurante/lasmestras.jpg"),
     description: "Restaurante especializado en platos de carne asada y fritos",
     promo: "3x2 en platos de carne",
+    address: "Av. Almagro y Colón, Quito 170143, Ecuador",
     menu: [
       {
         id: 7,
@@ -103,6 +105,7 @@ export const mockRestaurants = [
     image: require("../assets/fotoRestaurante/cafesb.jpg"),
     description: "Cafetería acogedora con una variedad de cafés, postres y pizzas",
     promo: null,
+    address: "Plaza de San Blas, Av. Pichincha, Quito 170136, Ecuador",
     menu: [
       {
         id: 9,
@@ -133,6 +136,7 @@ export const mockRestaurants = [
     image: require("../assets/fotoRestaurante/corvinasj.jpg"),
     description: "Restaurante especializado en mariscos frescos y platos típicos ecuatorianos",
     promo: "Gratis chifles con tu pedido",
+    address: "Mercado Central, Av. Pichincha y Esmeraldas, Quito 170136, Ecuador",
     menu: [
       {
         id: 11,
@@ -163,6 +167,7 @@ export const mockRestaurants = [
     image: require("../assets/fotoRestaurante/motecol.jpg"),
     description: "Restaurante tradicional ecuatoriano especializado en mote y platos típicos",
     promo: "Dos refrescos gratis con tu pedido",
+    address: "Calle La Ronda, Venezuela y Morales, Quito 170150, Ecuador",
     menu: [
       {
         id: 13,

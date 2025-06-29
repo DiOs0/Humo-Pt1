@@ -1,21 +1,14 @@
+// components/MapRestaurants.js
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Dimensions } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
-import { mockRestaurants } from '../../data/mockData';
-import { geocodeAddress } from '../../utils/geocode';
+import { mockRestaurants } from '../data/mockData';
+import { geocodeAddress } from '../utils/geocode';
 
 const { width, height } = Dimensions.get('window');
 
-// Definir el tipo de marcador
-interface MarkerType {
-  id: number;
-  name: string;
-  lat: number;
-  lng: number;
-}
-
-export default function MapTestScreen() {
-  const [markers, setMarkers] = useState<MarkerType[]>([]);
+export default function MapRestaurants() {
+  const [markers, setMarkers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,7 +17,6 @@ export default function MapTestScreen() {
         mockRestaurants.map(async (rest) => {
           try {
             const coords = await geocodeAddress(rest.address);
-            console.log(`Coordenadas para ${rest.name}:`, coords);
             return {
               id: rest.id,
               name: rest.name,
@@ -32,16 +24,12 @@ export default function MapTestScreen() {
               lng: coords.lng,
             };
           } catch (e) {
-            console.error(`Error geocodificando ${rest.name}:`, e);
             return null;
           }
         })
       );
-      setMarkers(results.filter(Boolean) as MarkerType[]);
+      setMarkers(results.filter(Boolean));
       setLoading(false);
-      if (results.filter(Boolean).length === 0) {
-      console.warn('No se obtuvieron marcadores. Revisa tu API Key y la respuesta de la API.');
-    }
     }
     fetchMarkers();
   }, []);
