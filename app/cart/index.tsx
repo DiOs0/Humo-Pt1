@@ -97,7 +97,7 @@ export default function CartScreen() {
         >
           <ArrowLeft size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('cart.title')}</Text>
+        <Text style={styles.headerTitle}>{t('carrito')}</Text>
       </View>
 
       {cartItems.length > 0 ? (
@@ -111,7 +111,7 @@ export default function CartScreen() {
                   <View style={styles.restaurantLocation}>
                     <MapPin size={14} color="#666" />
                     <Text style={styles.restaurantDistance}>
-                      {restaurant.distance}km {t('cart.away')}
+                      {restaurant.distance}km {t('ubicación')}
                     </Text>
                   </View>
                 </View>
@@ -119,7 +119,7 @@ export default function CartScreen() {
             )}
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t('cart.items')}</Text>
+              <Text style={styles.sectionTitle}>{t('productos')}</Text>
               {cartItems.map(item => (
                 <CartItem 
                   key={item.id}
@@ -132,7 +132,7 @@ export default function CartScreen() {
             </View>
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t('cart.deliveryOptions')}</Text>
+              <Text style={styles.sectionTitle}>{t('opciones de envío')}</Text>
               
               <View style={styles.optionsContainer}>
                 <TouchableOpacity
@@ -156,7 +156,7 @@ export default function CartScreen() {
                       {t('cart.delivery')}
                     </Text>
                     <Text style={styles.optionSubtitle}>
-                      {t('cart.deliveryTime', { time: '30-45' })}
+                      {t('tiempo de envío', { time: '30-45' })}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -182,7 +182,7 @@ export default function CartScreen() {
                       {t('cart.pickup')}
                     </Text>
                     <Text style={styles.optionSubtitle}>
-                      {t('cart.pickupTime', { time: '15-20' })}
+                      {t('tiempo de preparación', { time: '15-20' })}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -190,7 +190,7 @@ export default function CartScreen() {
             </View>
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t('cart.paymentMethod')}</Text>
+              <Text style={styles.sectionTitle}>{t('método de pago')}</Text>
               
               <View style={styles.optionsContainer}>
                 <TouchableOpacity
@@ -210,7 +210,7 @@ export default function CartScreen() {
                       paymentMethod === 'card' && styles.selectedOptionText
                     ]}
                   >
-                    {t('cart.creditCard')}
+                    {t('tarjeta de crédito')}
                   </Text>
                 </TouchableOpacity>
                 
@@ -235,22 +235,22 @@ export default function CartScreen() {
                       paymentMethod === 'cash' && styles.selectedOptionText
                     ]}
                   >
-                    {t('cart.cash')}
+                    {t('efectivo')}
                   </Text>
                 </TouchableOpacity>
               </View>
             </View>
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t('cart.orderSummary')}</Text>
+              <Text style={styles.sectionTitle}>{t('resumen')}</Text>
               
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>{t('cart.subtotal')}</Text>
+                <Text style={styles.summaryLabel}>{t('subtotal')}</Text>
                 <Text style={styles.summaryValue}>${subtotal.toFixed(2)}</Text>
               </View>
               
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>{t('cart.deliveryFee')}</Text>
+                <Text style={styles.summaryLabel}>{t('envio gratis')}</Text>
                 <Text style={styles.summaryValue}>
                   {deliveryOption === 'pickup' 
                     ? t('cart.free') 
@@ -259,12 +259,12 @@ export default function CartScreen() {
               </View>
               
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>{t('cart.serviceFee')}</Text>
+                <Text style={styles.summaryLabel}>{t('servicio grati')}</Text>
                 <Text style={styles.summaryValue}>${serviceFee.toFixed(2)}</Text>
               </View>
               
               <View style={[styles.summaryRow, styles.totalRow]}>
-                <Text style={styles.totalLabel}>{t('cart.total')}</Text>
+                <Text style={styles.totalLabel}>{t('total')}</Text>
                 <Text style={styles.totalValue}>${total.toFixed(2)}</Text>
               </View>
             </View>
@@ -275,7 +275,7 @@ export default function CartScreen() {
               style={styles.checkoutButton}
               onPress={() => router.push('/order/confirmation')}
             >
-              <Text style={styles.checkoutButtonText}>{t('cart.placeOrder')}</Text>
+              <Text style={styles.checkoutButtonText}>{t('Ordenar')}</Text>
             </TouchableOpacity>
           </View>
         </>
@@ -285,13 +285,13 @@ export default function CartScreen() {
             source={{ uri: 'https://images.pexels.com/photos/5677794/pexels-photo-5677794.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1' }}
             style={styles.emptyCartImage}
           />
-          <Text style={styles.emptyCartTitle}>{t('cart.emptyCart')}</Text>
-          <Text style={styles.emptyCartSubtitle}>{t('cart.emptyCartMessage')}</Text>
+          <Text style={styles.emptyCartTitle}>{t('carrito vacio')}</Text>
+          <Text style={styles.emptyCartSubtitle}>{t('no hay productos')}</Text>
           <TouchableOpacity 
             style={styles.browseButton}
             onPress={() => router.push('/')}
           >
-            <Text style={styles.browseButtonText}>{t('cart.browseRestaurants')}</Text>
+            <Text style={styles.browseButtonText}>{t('buscar restaurantes')}</Text>
           </TouchableOpacity>
         </View>
       )}

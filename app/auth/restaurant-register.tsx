@@ -100,6 +100,13 @@ export default function RestaurantRegisterScreen() {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Registro de Restaurante</Text>
         </View>
+        <View style={styles.logoContainer}>
+          <Image
+            source={require('@/assets/login/Logo EASYFOOD.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </View>
 
         <View style={styles.formContainer}>
           <View style={styles.inputGroup}>
@@ -187,6 +194,7 @@ export default function RestaurantRegisterScreen() {
   );
 }
 
+import { Image } from 'react-native';
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -204,6 +212,15 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E1E1E1',
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginTop: 2,
+    marginBottom: 5,
+  },
+  logo: {
+    width: 265,
+    height: 110,
   },
   backButton: {
     marginRight: 16,

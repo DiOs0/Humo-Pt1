@@ -160,7 +160,7 @@ export default function RestaurantScreen() {
               </View>
               <View style={styles.infoItem}>
                 <Clock size={16} color="#666" />
-                <Text style={styles.infoText}>{restaurant.deliveryTime} {t('restaurant.deliveryTime')}</Text>
+                <Text style={styles.infoText}>{restaurant.deliveryTime} {t('tiempo de envío')}</Text>
               </View>
             </View>
           </View>
@@ -168,14 +168,14 @@ export default function RestaurantScreen() {
           <View style={styles.divider} />
           
           <View style={styles.aboutSection}>
-            <Text style={styles.sectionTitle}>{t('restaurant.about')}</Text>
-            <Text style={styles.aboutText}>{restaurant.description || t('restaurant.noDescription')}</Text>
+            <Text style={styles.sectionTitle}>{t('acerca de')}</Text>
+            <Text style={styles.aboutText}>{restaurant.description || t('sin descripción')}</Text>
           </View>
           
           <View style={styles.divider} />
           
           <View style={styles.menuSection}>
-            <Text style={styles.sectionTitle}>{t('restaurant.menu')}</Text>
+            <Text style={styles.sectionTitle}>{t('menu')}</Text>
             
             <ScrollView 
               horizontal 
@@ -222,7 +222,7 @@ export default function RestaurantScreen() {
             <View style={styles.cartBadge}>
               <Text style={styles.cartBadgeText}>{totalItems}</Text>
             </View>
-            <Text style={styles.cartText}>{t('restaurant.itemsInCart')}</Text>
+            <Text style={styles.cartText}>{t('articulos en carrito')}</Text>
           </View>
           <Text style={styles.cartTotal}>${totalPrice.toFixed(2)}</Text>
           <TouchableOpacity 
@@ -230,7 +230,7 @@ export default function RestaurantScreen() {
             onPress={() => router.push('/cart')}
           >
             <ShoppingBag size={20} color="white" />
-            <Text style={styles.viewCartText}>{t('restaurant.viewCart')}</Text>
+            <Text style={styles.viewCartText}>{t('ver carrito')}</Text>
           </TouchableOpacity>
         </View>
       )}

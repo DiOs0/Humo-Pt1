@@ -26,7 +26,7 @@ export default function LoginScreen() {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 65 : 0}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
@@ -39,6 +39,13 @@ export default function LoginScreen() {
           <Text style={styles.headerTitle}>
             {isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
           </Text>
+        </View>
+        <View style={styles.logoContainer}>
+          <Image
+            source={require('@/assets/login/Logo EASYFOOD.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
         </View>
 
         <View style={styles.formContainer}>
@@ -140,8 +147,17 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingBottom: 40,
   },
+  logoContainer: {
+    alignItems: 'center',
+    marginTop: 2,
+    marginBottom: 5,
+  },
+  logo: {
+    width: 265,
+    height: 110,
+  },
   header: {
-    paddingTop: 60,
+    paddingTop: 55,
     paddingHorizontal: 24,
     paddingBottom: 24,
     borderBottomWidth: 1,
