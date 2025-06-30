@@ -5,14 +5,16 @@ import { ArrowLeft, Clock, MapPin, Star, Plus, Minus, ShoppingBag } from 'lucide
 import { useTranslation } from '@/hooks/useTranslation';
 import { mockRestaurants } from '@/data/mockData';
 
+
 interface MenuItem {
   id: number;
   name: string;
   description: string;
   price: number;
-  image: number; // Cambiado a number para imágenes locales (require)
+  image: number | string | { uri: string };
   category: string;
 }
+
 
 interface Restaurant {
   id: number;
@@ -22,7 +24,7 @@ interface Restaurant {
   reviewCount: number;
   distance: number;
   deliveryTime: string;
-  image: number; // Cambiado a number para imágenes locales (require)
+  image: number | string | { uri: string };
   menu: MenuItem[];
   description?: string;
   promo?: string | null;
@@ -40,9 +42,16 @@ interface CartItems {
 }
 
 function MenuItem({ item, onAdd, onRemove, quantity = 0 }: MenuItemProps) {
+  // Validar el tipo de imagen para evitar errores
+  let menuItemImageSource: number | { uri: string } = item.image as number | { uri: string };
+  if (typeof item.image === 'string') {
+    menuItemImageSource = { uri: item.image };
+  } else if (typeof item.image === 'object' && item.image !== null && 'uri' in item.image) {
+    menuItemImageSource = item.image as { uri: string };
+  }
   return (
     <View style={styles.menuItem}>
-      <Image source={item.image} style={styles.menuItemImage} />
+      <Image source={menuItemImageSource} style={styles.menuItemImage} />
       <View style={styles.menuItemInfo}>
         <Text style={styles.menuItemName}>{item.name}</Text>
         <Text style={styles.menuItemDescription}>{item.description}</Text>
@@ -129,10 +138,17 @@ export default function RestaurantScreen() {
     return sum + (item ? item.price * quantity : 0);
   }, 0);
 
+  // Validar el tipo de imagen para evitar errores
+  let restaurantImageSource: number | { uri: string } = restaurant.image as number | { uri: string };
+  if (typeof restaurant.image === 'string') {
+    restaurantImageSource = { uri: restaurant.image };
+  } else if (typeof restaurant.image === 'object' && restaurant.image !== null && 'uri' in restaurant.image) {
+    restaurantImageSource = restaurant.image as { uri: string };
+  }
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        <Image source={restaurant.image} style={styles.coverImage} />
+        <Image source={restaurantImageSource} style={styles.coverImage} />
         
         <TouchableOpacity 
           style={styles.backButton}

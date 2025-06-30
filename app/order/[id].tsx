@@ -189,7 +189,7 @@ export default function OrderTrackingScreen() {
           style={styles.backToOrdersButton}
           onPress={() => router.push('/orders')}
         >
-          <Text style={styles.backToOrdersText}>{t('volver a pedidos')}</Text>
+          <Text style={styles.backToOrdersText}>{t('volver a los restaurantes')}</Text>
         </TouchableOpacity>
       </View>
     );

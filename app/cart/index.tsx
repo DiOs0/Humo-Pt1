@@ -13,9 +13,16 @@ const mockCartItems = [
 ];
 
 function CartItem({ item, onIncrease, onDecrease, onRemove }) {
+  // Validar el tipo de imagen para evitar errores
+  let itemImageSource: number | { uri: string } = item.image as number | { uri: string };
+  if (typeof item.image === 'string') {
+    itemImageSource = { uri: item.image };
+  } else if (typeof item.image === 'object' && item.image !== null && 'uri' in item.image) {
+    itemImageSource = item.image as { uri: string };
+  }
   return (
     <View style={styles.cartItem}>
-      <Image source={{ uri: item.image }} style={styles.itemImage} />
+      <Image source={itemImageSource} style={styles.itemImage} />
       
       <View style={styles.itemInfo}>
         <Text style={styles.itemName}>{item.name}</Text>
@@ -105,7 +112,16 @@ export default function CartScreen() {
           <ScrollView style={styles.content}>
             {restaurant && (
               <View style={styles.restaurantInfo}>
-                <Image source={{ uri: restaurant.image }} style={styles.restaurantImage} />
+                {/* Validar el tipo de imagen para evitar errores */}
+                {(() => {
+                  let restaurantImageSource: number | { uri: string } = restaurant.image as number | { uri: string };
+                  if (typeof restaurant.image === 'string') {
+                    restaurantImageSource = { uri: restaurant.image };
+                  } else if (typeof restaurant.image === 'object' && restaurant.image !== null && 'uri' in restaurant.image) {
+                    restaurantImageSource = restaurant.image as { uri: string };
+                  }
+                  return <Image source={restaurantImageSource} style={styles.restaurantImage} />;
+                })()}
                 <View style={styles.restaurantDetails}>
                   <Text style={styles.restaurantName}>{restaurant.name}</Text>
                   <View style={styles.restaurantLocation}>
@@ -153,7 +169,7 @@ export default function CartScreen() {
                         deliveryOption === 'delivery' && styles.selectedOptionText
                       ]}
                     >
-                      {t('cart.delivery')}
+                      {t('envio a domicilio')}
                     </Text>
                     <Text style={styles.optionSubtitle}>
                       {t('tiempo de envío', { time: '30-45' })}
@@ -179,7 +195,7 @@ export default function CartScreen() {
                         deliveryOption === 'pickup' && styles.selectedOptionText
                       ]}
                     >
-                      {t('cart.pickup')}
+                      {t('recoger en el local')}
                     </Text>
                     <Text style={styles.optionSubtitle}>
                       {t('tiempo de preparación', { time: '15-20' })}
