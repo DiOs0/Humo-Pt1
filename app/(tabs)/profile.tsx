@@ -70,7 +70,7 @@ export default function ProfileScreen() {
       <ScrollView>
         <View style={styles.profileSection}>
           <Image
-            source={{ uri: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1' }}
+            source={require("../../assets/login/fotoperfil.png")}
             style={styles.profileImage}
           />
           <View style={styles.profileInfo}>
@@ -91,14 +91,14 @@ export default function ProfileScreen() {
             icon={User2}
             title="Información Personal"
             subtitle="Gestiona tus datos personales"
-            onPress={() => console.log('Personal Info')}
+            onPress={() => router.push('/profile-details')}
           />
           
           <ProfileMenuItem
             icon={CreditCard}
             title="Métodos de Pago"
             subtitle="Agregar o editar formas de pago"
-            onPress={() => console.log('Payment Methods')}
+            onPress={() => router.push('/payment-methods')}
           />
 
           <ProfileMenuItem
@@ -121,7 +121,7 @@ export default function ProfileScreen() {
             icon={Settings}
             title="Configuración"
             subtitle="Personaliza tu experiencia"
-            onPress={() => console.log('Settings')}
+            onPress={() => router.push('/payment-methods')}
           />
 
           <ProfileMenuItem
