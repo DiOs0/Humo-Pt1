@@ -82,29 +82,29 @@ function StatusLabel({ status }: { status: OrderStatus }) {
     switch(status) {
       case 'preparing':
         return {
-          title: t('orderTracking.preparing'),
-          description: t('orderTracking.preparingDesc'),
+          title: t('en preparacion'),
+          description: t('descripcion de preparacion'),
           icon: Clock,
           color: '#FF8C42'
         };
       case 'ready':
         return {
-          title: t('orderTracking.ready'),
-          description: t('orderTracking.readyDesc'),
+          title: t('listo'),
+          description: t('descripcion de listo'),
           icon: Check,
           color: '#33A95B'
         };
       case 'delivering':
         return {
-          title: t('orderTracking.delivering'),
-          description: t('orderTracking.deliveringDesc'),
+          title: t('enviado'),
+          description: t('descripcion de enviado'),
           icon: MapPin,
           color: '#2B80FF'
         };
       case 'completed':
         return {
-          title: t('orderTracking.completed'),
-          description: t('orderTracking.completedDesc'),
+          title: t('completado'),
+          description: t('descripcion de completado'),
           icon: Check,
           color: '#33A95B'
         };
@@ -176,7 +176,7 @@ export default function OrderTrackingScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>{t('orderTracking.loading')}</Text>
+        <Text style={styles.loadingText}>{t('cargando')}</Text>
       </View>
     );
   }
@@ -184,12 +184,12 @@ export default function OrderTrackingScreen() {
   if (!order) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{t('orderTracking.notFound')}</Text>
+        <Text style={styles.errorText}>{t('no se encontró el pedido')}</Text>
         <TouchableOpacity 
           style={styles.backToOrdersButton}
           onPress={() => router.push('/orders')}
         >
-          <Text style={styles.backToOrdersText}>{t('orderTracking.backToOrders')}</Text>
+          <Text style={styles.backToOrdersText}>{t('volver a los restaurantes')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -208,7 +208,7 @@ export default function OrderTrackingScreen() {
         >
           <ArrowLeft size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('orderTracking.title')}</Text>
+        <Text style={styles.headerTitle}>{t('Pedido')}</Text>
       </View>
       
       <ScrollView style={styles.content}>
@@ -216,7 +216,7 @@ export default function OrderTrackingScreen() {
           <View style={styles.orderHeader}>
             <View>
               <Text style={styles.orderNumber}>#{order.id}</Text>
-              <Text style={styles.orderDate}>{orderTime} • {order.items.length} {t('orderTracking.items')}</Text>
+              <Text style={styles.orderDate}>{orderTime} • {order.items.length} {t('artículos')}</Text>
             </View>
             <Text style={styles.orderTotal}>${order.total.toFixed(2)}</Text>
           </View>
@@ -229,7 +229,7 @@ export default function OrderTrackingScreen() {
               <Text style={styles.restaurantName}>{order.restaurantName}</Text>
               <View style={styles.restaurantLocation}>
                 <MapPin size={14} color="#666" />
-                <Text style={styles.locationText}>1.8km {t('orderTracking.away')}</Text>
+                <Text style={styles.locationText}>1.8km {t('ubicación')}</Text>
               </View>
             </View>
           </View>
@@ -238,28 +238,28 @@ export default function OrderTrackingScreen() {
           
           <View style={styles.timeEstimate}>
             <View style={styles.timeItem}>
-              <Text style={styles.timeLabel}>{t('orderTracking.orderTime')}</Text>
+              <Text style={styles.timeLabel}>{t('hora del pedido')}</Text>
               <Text style={styles.timeValue}>{orderTime}</Text>
             </View>
             <View style={styles.timeArrow}>
               <ArrowLeft size={16} color="#999" style={{ transform: [{ rotate: '180deg' }] }} />
             </View>
             <View style={styles.timeItem}>
-              <Text style={styles.timeLabel}>{t('orderTracking.estimatedDelivery')}</Text>
+              <Text style={styles.timeLabel}>{t('hora de entrega')}</Text>
               <Text style={styles.timeValue}>{estimatedDeliveryTime}</Text>
             </View>
           </View>
         </View>
         
         <View style={styles.statusSection}>
-          <Text style={styles.sectionTitle}>{t('orderTracking.status')}</Text>
+          <Text style={styles.sectionTitle}>{t('estado')}</Text>
           <OrderStatusTracker currentStatus={currentStatus} />
           <StatusLabel status={currentStatus} />
         </View>
         
         {currentStatus === 'delivering' && (
           <View style={styles.courierSection}>
-            <Text style={styles.sectionTitle}>{t('orderTracking.courier')}</Text>
+            <Text style={styles.sectionTitle}>{t('repartidor')}</Text>
             <View style={styles.courierCard}>
               <View style={styles.courierInfo}>
                 <Image 
@@ -268,7 +268,7 @@ export default function OrderTrackingScreen() {
                 />
                 <View style={styles.courierDetails}>
                   <Text style={styles.courierName}>Carlos Rodriguez</Text>
-                  <Text style={styles.courierStatus}>{t('orderTracking.onTheWay')}</Text>
+                  <Text style={styles.courierStatus}>{t('repartidor en camino')}</Text>
                 </View>
               </View>
               
@@ -285,7 +285,7 @@ export default function OrderTrackingScreen() {
         )}
         
         <View style={styles.orderDetailsSection}>
-          <Text style={styles.sectionTitle}>{t('orderTracking.orderDetails')}</Text>
+          <Text style={styles.sectionTitle}>{t('detalles del pedido')}</Text>
           <View style={styles.orderCard}>
             {order.items.map((item, index) => (
               <View key={index} style={styles.orderItem}>
@@ -304,19 +304,19 @@ export default function OrderTrackingScreen() {
             
             <View style={styles.orderSummary}>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>{t('orderTracking.subtotal')}</Text>
+                <Text style={styles.summaryLabel}>{t('subtotal')}</Text>
                 <Text style={styles.summaryValue}>${(order.total - 4.49).toFixed(2)}</Text>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>{t('orderTracking.deliveryFee')}</Text>
+                <Text style={styles.summaryLabel}>{t('deliveryFee')}</Text>
                 <Text style={styles.summaryValue}>$2.99</Text>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>{t('orderTracking.serviceFee')}</Text>
+                <Text style={styles.summaryLabel}>{t('serviceFee')}</Text>
                 <Text style={styles.summaryValue}>$1.50</Text>
               </View>
               <View style={[styles.summaryRow, styles.totalRow]}>
-                <Text style={styles.totalLabel}>{t('orderTracking.total')}</Text>
+                <Text style={styles.totalLabel}>{t('total')}</Text>
                 <Text style={styles.totalValue}>${order.total.toFixed(2)}</Text>
               </View>
             </View>
@@ -325,7 +325,7 @@ export default function OrderTrackingScreen() {
         
         {currentStatus !== 'completed' && currentStatus !== 'cancelled' && (
           <TouchableOpacity style={styles.cancelButton}>
-            <Text style={styles.cancelButtonText}>{t('orderTracking.cancelOrder')}</Text>
+            <Text style={styles.cancelButtonText}>{t('orden cancelada')}</Text>
           </TouchableOpacity>
         )}
         
@@ -334,7 +334,7 @@ export default function OrderTrackingScreen() {
             style={styles.rateButton}
             onPress={() => router.push(`/review/${order.id}`)}
           >
-            <Text style={styles.rateButtonText}>{t('orderTracking.rateOrder')}</Text>
+            <Text style={styles.rateButtonText}>{t('calificar pedido')}</Text>
           </TouchableOpacity>
         )}
       </ScrollView>

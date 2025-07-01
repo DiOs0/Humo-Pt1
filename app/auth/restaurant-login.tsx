@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react-native';
 
@@ -36,6 +36,13 @@ export default function RestaurantLoginScreen() {
             <ArrowLeft size={24} color="#333" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Portal de Restaurantes</Text>
+        </View>
+        <View style={styles.logoContainer}>
+          <Image
+            source={require('@/assets/login/Logo EASYFOOD.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
         </View>
 
         <View style={styles.formContainer}>
@@ -137,6 +144,15 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E1E1E1',
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginTop: 2,
+    marginBottom: 5,
+  },
+  logo: {
+    width: 265,
+    height: 110,
   },
   backButton: {
     marginRight: 16,
