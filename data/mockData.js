@@ -11,7 +11,7 @@ export const mockRestaurants = [
     image: require("../assets/fotoRestaurante/fondoversiongrentehlvs.jpg"),
     promo: "Por la compra de un plato, el segundo a mitad de precio!!",
     description: "Descubrir el sabor típico de Quito, es rescatar del tiempo sus tradiciones, raíces y leyendas",
-    address: "García Moreno N5-16 y Chile, Quito 170401, Ecuador",
+    address: "Chile Oe 456, Quito 170401",
     menu: [
       {
         id: 1,
