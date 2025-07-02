@@ -5,7 +5,7 @@ export default function PaymentComingSoonScreen() {
   return (
     <View style={styles.container}>
       <Image
-        source={require("../assets/images/coming-soon.png")}
+        source={require("../assets/images/coming-soon.jpg")}
         style={styles.image}
         resizeMode="contain"
       />
