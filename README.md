@@ -26,12 +26,25 @@ cd project
 
 ## Instalación de dependencias
 
-Para instalar todas las dependencias necesarias, ejecuta:
+1. Instala las dependencias principales:
 
 ```bash
 npm install
-# o si usas yarn
-yarn install
+```
+
+2. Instala las dependencias específicas necesarias:
+
+```bash
+npm install react-native-maps @react-native-community/geolocation expo-location
+npm install @react-navigation/native @react-navigation/stack expo-constants
+npm install react-native-svg lucide-react-native
+```
+
+3. Instala las herramientas de desarrollo:
+
+```bash
+npm install -g expo-cli
+npm install -g eas-cli
 ```
 
 ## Configuración del proyecto
@@ -58,6 +71,66 @@ Esto abrirá la interfaz de Expo Developer Tools en tu navegador. Desde allí po
 - Ejecutar la aplicación en un emulador de iOS/Android
 - Escanear el código QR con la aplicación Expo Go en tu dispositivo físico
 - Ejecutar en la web
+
+## Construcción del APK
+
+Para generar el archivo APK para Android, sigue estos pasos:
+
+1. **Asegúrate de tener todo configurado**:
+   ```bash
+   # Verifica que tienes EAS CLI instalado
+   npm install -g eas-cli
+
+   # Inicia sesión en tu cuenta de Expo
+   eas login
+   ```
+
+2. **Configura la construcción**:
+   ```bash
+   # Inicializa la configuración de EAS
+   eas build:configure
+   ```
+
+3. **Construye el APK**:
+   ```bash
+   # Construye el APK usando el perfil de preview
+   eas build -p android --profile preview
+   ```
+
+4. **Durante la construcción**:
+   - Cuando pregunte "Generate a new Android Keystore?", selecciona "Y" (Yes)
+   - Espera a que termine la construcción (puede tardar 10-15 minutos)
+   - Al finalizar, recibirás un enlace para descargar el APK
+
+5. **Instalación en dispositivo Android**:
+   - Descarga el APK en tu dispositivo Android
+   - Ve a Configuración > Seguridad
+   - Habilita "Orígenes desconocidos" o "Instalar aplicaciones desconocidas"
+   - Abre el archivo APK descargado y sigue las instrucciones de instalación
+
+### Solución de problemas comunes en la construcción
+
+1. **Error de permisos**: Asegúrate de que el archivo `app.json` tenga todos los permisos necesarios:
+   - "INTERNET"
+   - "ACCESS_COARSE_LOCATION"
+   - "ACCESS_FINE_LOCATION"
+
+2. **Error con el mapa**: Verifica que la API key de Google Maps esté correctamente configurada en:
+   - `app.json` en la sección de android.config.googleMaps.apiKey
+   - Las variables de entorno bajo "extra.googleMapsApiKey"
+
+3. **Error de construcción**:
+   ```bash
+   # Limpia la caché y los módulos
+   rm -rf node_modules
+   rm package-lock.json
+   npm cache clean --force
+   npm install
+   ```
+
+4. **Error de assets**:
+   - Asegúrate de que todos los assets estén incluidos en "assetBundlePatterns" en `app.json`
+   - Verifica que las imágenes estén en los formatos correctos (png, jpg)
 
 ## Estructura del proyecto
 
