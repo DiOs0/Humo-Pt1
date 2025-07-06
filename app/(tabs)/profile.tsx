@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Switch, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LogOut, ChevronRight, Bell, CreditCard, Globe, HelpCircle, Settings, ShieldCheck, User2, Store } from 'lucide-react-native';
 import { useTranslation } from '@/hooks/useTranslation';
+import * as FileSystem from 'expo-file-system';
 
 interface ProfileMenuItemProps {
   icon: any;
@@ -60,6 +61,18 @@ export default function ProfileScreen() {
     setIsVendorMode(true);
     router.push('/vendor/dashboard');
   };
+
+  useEffect(() => {
+    (async () => {
+      const dbPath = FileSystem.documentDirectory + 'SQLite/mydatabase.db';
+      const fileInfo = await FileSystem.getInfoAsync(dbPath);
+      if (fileInfo.exists) {
+        console.log('Ruta de la base de datos SQLite:', dbPath);
+      } else {
+        console.log('No se encontró la base de datos en:', dbPath);
+      }
+    })();
+  }, []);
 
   return (
     <View style={styles.container}>
