@@ -38,6 +38,7 @@ npm install
 npm install react-native-maps @react-native-community/geolocation expo-location
 npm install @react-navigation/native @react-navigation/stack expo-constants
 npm install react-native-svg lucide-react-native
+npm install expo-sqlite 
 ```
 
 3. Instala las herramientas de desarrollo:

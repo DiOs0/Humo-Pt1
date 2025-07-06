@@ -1,343 +1,210 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Phone, MessageCircle, Clock, Check, MapPin } from 'lucide-react-native';
+import { Check, MapPin, Clock, ChevronRight } from 'lucide-react-native';
 import { useTranslation } from '@/hooks/useTranslation';
-import { mockOrders } from '@/data/mockData';
+import { getOrderDetails } from '@/utils/database';
+import { mockRestaurants } from '@/data/mockData';
 
-// Función auxiliar para validar el estado del pedido
-function isValidOrderStatus(status: string): status is OrderStatus {
-  return ['preparing', 'ready', 'delivering', 'completed', 'cancelled'].includes(status);
-}
-
-type OrderStatus = 'preparing' | 'ready' | 'delivering' | 'completed' | 'cancelled';
-
-interface OrderItem {
+interface OrderDetails {
   id: number;
-  name: string;
-  price: number;
-  quantity: number;
-  notes?: string;
+  user_id: number;
+  restaurant_id: number;
+  status: string;
+  total_amount: number;
+  delivery_fee: number;
+  service_fee: number;
+  created_at: string;
+  delivery_address: string;
+  customer_name: string;
+  customer_phone: string;
+  items: Array<{
+    id: number;
+    order_id: number;
+    product_id: number;
+    quantity: number;
+    price: number;
+    name: string;
+    image_url: string;
+    notes?: string;
+  }>;
 }
 
-interface Order {
-  id: number;
-  restaurantId: number;
-  restaurantName: string;
-  restaurantImage: string;
-  status: OrderStatus;
-  date: string;
-  total: number;
-  customerName: string;
-  items: OrderItem[];
-}
-
-interface OrderStatusTrackerProps {
-  currentStatus: OrderStatus;
-}
-
-// Simulated progress tracking
-const ORDER_STATUSES: OrderStatus[] = ['preparing', 'ready', 'delivering', 'completed'];
-
-function OrderStatusTracker({ currentStatus }: OrderStatusTrackerProps) {
-  const statusIndex = ORDER_STATUSES.indexOf(currentStatus);
-  
-  return (
-    <View style={styles.statusTracker}>
-      {ORDER_STATUSES.map((status, index) => {
-        const isCompleted = index <= statusIndex;
-        const isActive = index === statusIndex;
-        
-        return (
-          <View key={status} style={styles.statusStep}>
-            <View 
-              style={[
-                styles.statusDot,
-                isCompleted && styles.completedDot,
-                isActive && styles.activeDot
-              ]}
-            >
-              {isCompleted && <Check size={12} color="white" />}
-            </View>
-            
-            {index < ORDER_STATUSES.length - 1 && (
-              <View 
-                style={[
-                  styles.statusLine,
-                  isCompleted && index < statusIndex && styles.completedLine
-                ]} 
-              />
-            )}
-          </View>
-        );
-      })}
-    </View>
-  );
-}
-
-function StatusLabel({ status }: { status: OrderStatus }) {
-  const { t } = useTranslation();
-  
-  const getStatusInfo = () => {
-    switch(status) {
-      case 'preparing':
-        return {
-          title: t('en preparacion'),
-          description: t('descripcion de preparacion'),
-          icon: Clock,
-          color: '#FF8C42'
-        };
-      case 'ready':
-        return {
-          title: t('listo'),
-          description: t('descripcion de listo'),
-          icon: Check,
-          color: '#33A95B'
-        };
-      case 'delivering':
-        return {
-          title: t('enviado'),
-          description: t('descripcion de enviado'),
-          icon: MapPin,
-          color: '#2B80FF'
-        };
-      case 'completed':
-        return {
-          title: t('completado'),
-          description: t('descripcion de completado'),
-          icon: Check,
-          color: '#33A95B'
-        };
-      default:
-        return {
-          title: status,
-          description: '',
-          icon: Clock,
-          color: '#666666'
-        };
-    }
-  };
-  
-  const { title, description, icon: Icon, color } = getStatusInfo();
-  
-  return (
-    <View style={styles.statusLabel}>
-      <View style={[styles.statusIconContainer, { backgroundColor: `${color}20` }]}>
-        <Icon size={24} color={color} />
-      </View>
-      <View style={styles.statusTextContainer}>
-        <Text style={[styles.statusTitle, { color }]}>{title}</Text>
-        <Text style={styles.statusDescription}>{description}</Text>
-      </View>
-    </View>
-  );
-}
-
-export default function OrderTrackingScreen() {
-  const { id } = useLocalSearchParams();
+export default function OrderConfirmationScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  
-  // In a real app, we would fetch the order details from an API
-  const [order, setOrder] = useState<Order | null>(null);
+  const params = useLocalSearchParams();
+  const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // Simulate order status changes for demo purposes
-  const [currentStatus, setCurrentStatus] = useState<OrderStatus>('preparing');
-  
+  // Obtener el ID del pedido de los parámetros o generar uno aleatorio para pruebas
+  const orderId = params.orderId ? Number(params.orderId) : Math.floor(10000 + Math.random() * 90000);
+  const orderNumber = "EF" + orderId;
+  const estimatedTime = "30-45";
+
   useEffect(() => {
-    // Simulate fetching order details
-    const fetchedOrder = mockOrders.find(o => o.id.toString() === id);
-    
-    if (fetchedOrder && isValidOrderStatus(fetchedOrder.status)) {
-      setOrder({
-        ...fetchedOrder,
-        status: fetchedOrder.status as OrderStatus
-      });
-      setCurrentStatus(fetchedOrder.status as OrderStatus);
-    }
-    
-    setLoading(false);
-    
-    // Simulate status updates for demo purposes
-    const interval = setInterval(() => {
-      setCurrentStatus(prev => {
-        const currentIndex = ORDER_STATUSES.indexOf(prev);
-        if (currentIndex < ORDER_STATUSES.length - 1) {
-          return ORDER_STATUSES[currentIndex + 1];
+    const loadOrderDetails = async () => {
+      try {
+        if (params.orderId) {
+          // Si tenemos un ID de pedido real, cargamos los detalles desde la base de datos
+          const details = await getOrderDetails(Number(params.orderId));
+          setOrderDetails(details);
+        } else {
+          // Para pruebas, usamos datos del parámetro o valores por defecto
+          setOrderDetails({
+            id: orderId,
+            user_id: 1,
+            restaurant_id: 1,
+            status: 'preparing',
+            total_amount: Number(params.total) || 41.45,
+            delivery_fee: Number(params.deliveryFee) || 2.99,
+            service_fee: Number(params.serviceFee) || 1.50,
+            created_at: new Date().toISOString(),
+            delivery_address: 'Dirección de prueba',
+            customer_name: 'Cliente de prueba',
+            customer_phone: '0987654321',
+            items: []
+          });
         }
-        return prev;
-      });
-    }, 20000); // Change status every 20 seconds
+      } catch (error) {
+        console.error('Error loading order details:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    return () => clearInterval(interval);
-  }, [id]);
-  
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>{t('cargando')}</Text>
-      </View>
-    );
-  }
-  
-  if (!order) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{t('no se encontró el pedido')}</Text>
-        <TouchableOpacity 
-          style={styles.backToOrdersButton}
-          onPress={() => router.push('/orders')}
-        >
-          <Text style={styles.backToOrdersText}>{t('volver a los restaurantes')}</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-  
-  // Format the order time
-  const orderTime = new Date(order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const estimatedDeliveryTime = new Date(new Date(order.date).getTime() + 45 * 60000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  
+    loadOrderDetails();
+  }, [params.orderId]);
+
+  // Encontrar información del restaurante
+  const restaurant = orderDetails?.restaurant_id
+    ? mockRestaurants.find(r => r.id === orderDetails.restaurant_id)
+    : null;
+
+  const restaurantName = params.restaurantName || restaurant?.name || 'Restaurante';
+  const restaurantImage = params.restaurantImage || restaurant?.image || 
+    'https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1';
+
+  // Calcular los totales si están disponibles en los parámetros
+  const subtotal = Number(params.subtotal) || (orderDetails?.total_amount || 0) - (orderDetails?.delivery_fee || 0) - (orderDetails?.service_fee || 0);
+  const deliveryFee = Number(params.deliveryFee) || orderDetails?.delivery_fee || 2.99;
+  const serviceFee = Number(params.serviceFee) || orderDetails?.service_fee || 1.50;
+  const total = Number(params.total) || orderDetails?.total_amount || subtotal + deliveryFee + serviceFee;
+
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <ArrowLeft size={24} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('Pedido')}</Text>
-      </View>
-      
-      <ScrollView style={styles.content}>
-        <View style={styles.orderInfoCard}>
-          <View style={styles.orderHeader}>
-            <View>
-              <Text style={styles.orderNumber}>#{order.id}</Text>
-              <Text style={styles.orderDate}>{orderTime} • {order.items.length} {t('artículos')}</Text>
-            </View>
-            <Text style={styles.orderTotal}>${order.total.toFixed(2)}</Text>
+      <ScrollView style={styles.scrollContainer}>
+        <View style={styles.content}>
+          <View style={styles.successIcon}>
+            <Check size={40} color="white" />
           </View>
           
-          <View style={styles.divider} />
+          <Text style={styles.title}>{t('Confirmación exitosa')}</Text>
+          <Text style={styles.subtitle}>{t('subtitulo')}</Text>
           
-          <View style={styles.restaurantInfo}>
-            <Image source={{ uri: order.restaurantImage }} style={styles.restaurantImage} />
-            <View style={styles.restaurantDetails}>
-              <Text style={styles.restaurantName}>{order.restaurantName}</Text>
-              <View style={styles.restaurantLocation}>
-                <MapPin size={14} color="#666" />
-                <Text style={styles.locationText}>1.8km {t('ubicación')}</Text>
-              </View>
-            </View>
+          <View style={styles.orderInfo}>
+            <Text style={styles.orderLabel}>{t('numero de orden')}</Text>
+            <Text style={styles.orderNumber}>{orderNumber}</Text>
           </View>
           
-          <View style={styles.divider} />
-          
-          <View style={styles.timeEstimate}>
-            <View style={styles.timeItem}>
-              <Text style={styles.timeLabel}>{t('hora del pedido')}</Text>
-              <Text style={styles.timeValue}>{orderTime}</Text>
-            </View>
-            <View style={styles.timeArrow}>
-              <ArrowLeft size={16} color="#999" style={{ transform: [{ rotate: '180deg' }] }} />
-            </View>
-            <View style={styles.timeItem}>
-              <Text style={styles.timeLabel}>{t('hora de entrega')}</Text>
-              <Text style={styles.timeValue}>{estimatedDeliveryTime}</Text>
-            </View>
-          </View>
-        </View>
-        
-        <View style={styles.statusSection}>
-          <Text style={styles.sectionTitle}>{t('estado')}</Text>
-          <OrderStatusTracker currentStatus={currentStatus} />
-          <StatusLabel status={currentStatus} />
-        </View>
-        
-        {currentStatus === 'delivering' && (
-          <View style={styles.courierSection}>
-            <Text style={styles.sectionTitle}>{t('repartidor')}</Text>
-            <View style={styles.courierCard}>
-              <View style={styles.courierInfo}>
-                <Image 
-                  source={{ uri: 'https://images.pexels.com/photos/1681010/pexels-photo-1681010.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1' }} 
-                  style={styles.courierImage}
-                />
-                <View style={styles.courierDetails}>
-                  <Text style={styles.courierName}>Carlos Rodriguez</Text>
-                  <Text style={styles.courierStatus}>{t('repartidor en camino')}</Text>
+          <View style={styles.card}>
+            <View style={styles.restaurantInfo}>
+              <Image 
+                source={typeof restaurantImage === 'string' ? { uri: restaurantImage } : restaurantImage} 
+                style={styles.restaurantImage} 
+              />
+              <View style={styles.restaurantDetails}>
+                <Text style={styles.restaurantName}>{restaurantName}</Text>
+                <View style={styles.restaurantLocation}>
+                  <MapPin size={14} color="#666" />
+                  <Text style={styles.locationText}>2.1km {t('ubicación')}</Text>
                 </View>
               </View>
-              
-              <View style={styles.courierActions}>
-                <TouchableOpacity style={styles.actionButton}>
-                  <Phone size={20} color="#E85D04" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionButton}>
-                  <MessageCircle size={20} color="#E85D04" />
-                </TouchableOpacity>
-              </View>
             </View>
-          </View>
-        )}
-        
-        <View style={styles.orderDetailsSection}>
-          <Text style={styles.sectionTitle}>{t('detalles del pedido')}</Text>
-          <View style={styles.orderCard}>
-            {order.items.map((item, index) => (
-              <View key={index} style={styles.orderItem}>
-                <View style={styles.itemQuantity}>
-                  <Text style={styles.quantityText}>{item.quantity}x</Text>
-                </View>
-                <View style={styles.itemInfo}>
-                  <Text style={styles.itemName}>{item.name}</Text>
-                  {item.notes && <Text style={styles.itemNotes}>{item.notes}</Text>}
-                </View>
-                <Text style={styles.itemPrice}>${(item.price * item.quantity).toFixed(2)}</Text>
-              </View>
-            ))}
             
             <View style={styles.divider} />
             
-            <View style={styles.orderSummary}>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>{t('subtotal')}</Text>
-                <Text style={styles.summaryValue}>${(order.total - 4.49).toFixed(2)}</Text>
+            <View style={styles.deliveryInfo}>
+              <View style={styles.deliveryDetail}>
+                <Clock size={16} color="#E85D04" />
+                <View style={styles.deliveryTextContainer}>
+                  <Text style={styles.deliveryLabel}>{t('tiempo estimado envio')}</Text>
+                  <Text style={styles.deliveryValue}>{estimatedTime} {t('minutos')}</Text>
+                </View>
               </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>{t('deliveryFee')}</Text>
-                <Text style={styles.summaryValue}>$2.99</Text>
-              </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>{t('serviceFee')}</Text>
-                <Text style={styles.summaryValue}>$1.50</Text>
-              </View>
-              <View style={[styles.summaryRow, styles.totalRow]}>
-                <Text style={styles.totalLabel}>{t('total')}</Text>
-                <Text style={styles.totalValue}>${order.total.toFixed(2)}</Text>
-              </View>
+              
+              <TouchableOpacity 
+                style={styles.trackButton}
+                onPress={() => router.push(`/order/${orderId}`)}
+              >
+                <Text style={styles.trackButtonText}>{t('rastrear pedido')}</Text>
+                <ChevronRight size={16} color="#E85D04" />
+              </TouchableOpacity>
+            </View>
+          </View>
+          
+          <View style={styles.orderSummary}>
+            <Text style={styles.summaryTitle}>{t('resumen del pedido')}</Text>
+
+            {/* Si tenemos elementos del pedido, mostrarlos */}
+            {orderDetails?.items && orderDetails.items.length > 0 ? (
+              orderDetails.items.map((item, index) => (
+                <View key={index} style={styles.summaryItem}>
+                  <Text style={styles.itemName}>{item.name} x{item.quantity}</Text>
+                  <Text style={styles.itemPrice}>${(item.price * item.quantity).toFixed(2)}</Text>
+                </View>
+              ))
+            ) : (
+              // Si no hay elementos, mostrar datos de ejemplo
+              <>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.itemName}>Plato principal x2</Text>
+                  <Text style={styles.itemPrice}>${(subtotal * 0.6).toFixed(2)}</Text>
+                </View>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.itemName}>Guarnición x1</Text>
+                  <Text style={styles.itemPrice}>${(subtotal * 0.3).toFixed(2)}</Text>
+                </View>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.itemName}>Bebida x1</Text>
+                  <Text style={styles.itemPrice}>${(subtotal * 0.1).toFixed(2)}</Text>
+                </View>
+              </>
+            )}
+            
+            <View style={styles.divider} />
+            
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryLabel}>{t('subtotal')}</Text>
+              <Text style={styles.summaryValue}>${subtotal.toFixed(2)}</Text>
+            </View>
+            
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryLabel}>{t('deliveryFee')}</Text>
+              <Text style={styles.summaryValue}>${deliveryFee.toFixed(2)}</Text>
+            </View>
+            
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryLabel}>{t('serviceFee')}</Text>
+              <Text style={styles.summaryValue}>${serviceFee.toFixed(2)}</Text>
+            </View>
+            
+            <View style={[styles.summaryItem, styles.totalItem]}>
+              <Text style={styles.totalLabel}>{t('total')}</Text>
+              <Text style={styles.totalValue}>${total.toFixed(2)}</Text>
             </View>
           </View>
         </View>
-        
-        {currentStatus !== 'completed' && currentStatus !== 'cancelled' && (
-          <TouchableOpacity style={styles.cancelButton}>
-            <Text style={styles.cancelButtonText}>{t('orden cancelada')}</Text>
-          </TouchableOpacity>
-        )}
-        
-        {currentStatus === 'completed' && (
-          <TouchableOpacity 
-            style={styles.rateButton}
-            onPress={() => router.push(`/review/${order.id}`)}
-          >
-            <Text style={styles.rateButtonText}>{t('calificar pedido')}</Text>
-          </TouchableOpacity>
-        )}
       </ScrollView>
+      
+      <View style={styles.footer}>
+        <TouchableOpacity 
+          style={styles.homeButton}
+          onPress={() => router.push('/(tabs)')} // Redirigir a la pestaña de inicio en lugar de la raíz
+        >
+          <Text style={styles.homeButtonText}>{t('volver a inicio')}</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -347,74 +214,67 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F9F9F9',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingTop: 60,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
+  scrollContainer: {
     flex: 1,
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'center',
-    marginRight: 40, // To offset the back button and center the title
   },
   content: {
-    flex: 1,
-    padding: 16,
+    padding: 24,
+    paddingTop: 80,
+    alignItems: 'center',
+    paddingBottom: 24,
   },
-  orderInfoCard: {
+  successIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#33A95B',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  orderInfo: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  orderLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  orderNumber: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#E85D04',
+  },
+  card: {
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
+    width: '100%',
+    marginBottom: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
   },
-  orderHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  orderNumber: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  orderDate: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
-  },
-  orderTotal: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#E85D04',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#F0F0F0',
-    marginVertical: 16,
-  },
   restaurantInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 16,
   },
   restaurantImage: {
     width: 48,
@@ -439,216 +299,71 @@ const styles = StyleSheet.create({
     color: '#666',
     marginLeft: 4,
   },
-  timeEstimate: {
+  divider: {
+    height: 1,
+    backgroundColor: '#F0F0F0',
+    marginVertical: 16,
+  },
+  deliveryInfo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  timeItem: {
-    flex: 1,
+  deliveryDetail: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  timeLabel: {
+  deliveryTextContainer: {
+    marginLeft: 8,
+  },
+  deliveryLabel: {
     fontSize: 12,
     color: '#666',
-    marginBottom: 4,
   },
-  timeValue: {
-    fontSize: 16,
+  deliveryValue: {
+    fontSize: 14,
     fontWeight: '600',
     color: '#333',
   },
-  timeArrow: {
-    padding: 8,
+  trackButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  statusSection: {
+  trackButtonText: {
+    fontSize: 14,
+    color: '#E85D04',
+    fontWeight: '500',
+    marginRight: 4,
+  },
+  orderSummary: {
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
+    width: '100%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
   },
-  sectionTitle: {
+  summaryTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
     marginBottom: 16,
   },
-  statusTracker: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-    paddingHorizontal: 16,
-  },
-  statusStep: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  statusDot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#E0E0E0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1,
-  },
-  completedDot: {
-    backgroundColor: '#33A95B',
-  },
-  activeDot: {
-    borderWidth: 3,
-    borderColor: '#33A95B',
-  },
-  statusLine: {
-    height: 2,
-    backgroundColor: '#E0E0E0',
-    flex: 1,
-  },
-  completedLine: {
-    backgroundColor: '#33A95B',
-  },
-  statusLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  statusIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  statusTextContainer: {
-    flex: 1,
-  },
-  statusTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  statusDescription: {
-    fontSize: 14,
-    color: '#666',
-  },
-  courierSection: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  courierCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  courierInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  courierImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-  },
-  courierDetails: {
-    marginLeft: 12,
-  },
-  courierName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  courierStatus: {
-    fontSize: 14,
-    color: '#33A95B',
-  },
-  courierActions: {
-    flexDirection: 'row',
-  },
-  actionButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFF0E6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-    borderWidth: 1,
-    borderColor: '#FFE0CC',
-  },
-  orderDetailsSection: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  orderCard: {
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  orderItem: {
-    flexDirection: 'row',
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  itemQuantity: {
-    width: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-  },
-  quantityText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#E85D04',
-  },
-  itemInfo: {
-    flex: 1,
-  },
-  itemName: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#333',
-  },
-  itemNotes: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
-  },
-  itemPrice: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-  },
-  orderSummary: {
-    padding: 12,
-  },
-  summaryRow: {
+  summaryItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 8,
+  },
+  itemName: {
+    fontSize: 14,
+    color: '#333',
+  },
+  itemPrice: {
+    fontSize: 14,
+    color: '#333',
   },
   summaryLabel: {
     fontSize: 14,
@@ -658,77 +373,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
   },
-  totalRow: {
+  totalItem: {
     marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
   },
   totalLabel: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
     color: '#333',
   },
   totalValue: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#E85D04',
   },
-  cancelButton: {
-    borderWidth: 1,
-    borderColor: '#E53935',
-    borderRadius: 8,
+  footer: {
+    backgroundColor: 'white',
     padding: 16,
-    alignItems: 'center',
-    marginBottom: 24,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
   },
-  cancelButtonText: {
-    color: '#E53935',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  rateButton: {
+  homeButton: {
     backgroundColor: '#E85D04',
+    paddingVertical: 16,
     borderRadius: 8,
-    padding: 16,
     alignItems: 'center',
-    marginBottom: 24,
   },
-  rateButtonText: {
+  homeButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#666',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  errorText: {
-    fontSize: 18,
-    color: '#333',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  backToOrdersButton: {
-    backgroundColor: '#E85D04',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-  },
-  backToOrdersText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 16,
   },
 });

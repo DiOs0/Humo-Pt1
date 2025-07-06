@@ -89,7 +89,7 @@ export default function ReviewScreen() {
       <ScrollView style={styles.content}>
         <View style={styles.restaurantInfo}>
           <Image 
-            source={{ uri: order.restaurantImage }} 
+            source={typeof order.restaurantImage === 'string' ? { uri: order.restaurantImage } : order.restaurantImage} 
             style={styles.restaurantImage} 
           />
           <Text style={styles.restaurantName}>{order.restaurantName}</Text>

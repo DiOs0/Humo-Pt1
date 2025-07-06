@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Phone, MessageCircle, Clock, Check, MapPin } from 'lucide-react-native';
 import { useTranslation } from '@/hooks/useTranslation';
 import { mockOrders } from '@/data/mockData';
+import { useCart } from '@/contexts/CartContext';
 
 // Función auxiliar para validar el estado del pedido
 function isValidOrderStatus(status: string): status is OrderStatus {
@@ -137,6 +138,7 @@ export default function OrderTrackingScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { t } = useTranslation();
+  const { addItem, items } = useCart();
   
   // In a real app, we would fetch the order details from an API
   const [order, setOrder] = useState<Order | null>(null);
@@ -173,6 +175,15 @@ export default function OrderTrackingScreen() {
     return () => clearInterval(interval);
   }, [id]);
   
+  const handleAddItem = (item: MenuItem) => {
+    addItem(item, 1); // Esto sí inserta en la base de datos
+  };
+  
+  const getQuantity = (productId: number) => {
+    const found = items.find(i => i.product_id === productId);
+    return found ? found.quantity : 0;
+  };
+  
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -189,7 +200,7 @@ export default function OrderTrackingScreen() {
           style={styles.backToOrdersButton}
           onPress={() => router.push('/orders')}
         >
-          <Text style={styles.backToOrdersText}>{t('volver a los restaurantes')}</Text>
+          <Text style={styles.backToOrdersText}>{t('volver a pedidos')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -224,7 +235,7 @@ export default function OrderTrackingScreen() {
           <View style={styles.divider} />
           
           <View style={styles.restaurantInfo}>
-            <Image source={{ uri: order.restaurantImage }} style={styles.restaurantImage} />
+            <Image source={typeof order.restaurantImage === 'string' ? { uri: order.restaurantImage } : order.restaurantImage} style={styles.restaurantImage} />
             <View style={styles.restaurantDetails}>
               <Text style={styles.restaurantName}>{order.restaurantName}</Text>
               <View style={styles.restaurantLocation}>
@@ -334,7 +345,7 @@ export default function OrderTrackingScreen() {
             style={styles.rateButton}
             onPress={() => router.push(`/review/${order.id}`)}
           >
-            <Text style={styles.rateButtonText}>{t('calificar pedido')}</Text>
+            <Text style={styles.rateButtonText}>{t('calificar el pedido')}</Text>
           </TouchableOpacity>
         )}
       </ScrollView>
@@ -732,3 +743,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
+
+export const getCartItems = (userId: number) => {
+  const cart = db.getFirstSync(
+    'SELECT * FROM Cart WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
+    [userId]
+  );
+  if (!cart) {
+    console.log('No hay carrito para el usuario', userId);
+    return [];
+  }
+  const items = db.getAllSync(
+    `SELECT ci.*, p.name, p.image_url
+     FROM CartItems ci
+     JOIN Products p ON ci.product_id = p.id
+     WHERE ci.cart_id = ?`,
+    [cart.id]
+  );
+  console.log('Items en el carrito:', items);
+  return items;
+};

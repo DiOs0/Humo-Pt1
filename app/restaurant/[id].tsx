@@ -1,20 +1,19 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Clock, MapPin, Star, Plus, Minus, ShoppingBag } from 'lucide-react-native';
 import { useTranslation } from '@/hooks/useTranslation';
 import { mockRestaurants } from '@/data/mockData';
-
+import { useCart } from '@/contexts/CartContext';
 
 interface MenuItem {
   id: number;
   name: string;
   description: string;
   price: number;
-  image: number | string | { uri: string };
+  image: number | string; // Permitir require o URL
   category: string;
 }
-
 
 interface Restaurant {
   id: number;
@@ -24,7 +23,7 @@ interface Restaurant {
   reviewCount: number;
   distance: number;
   deliveryTime: string;
-  image: number | string | { uri: string };
+  image: number | string; // Permitir require o URL
   menu: MenuItem[];
   description?: string;
   promo?: string | null;
@@ -42,16 +41,12 @@ interface CartItems {
 }
 
 function MenuItem({ item, onAdd, onRemove, quantity = 0 }: MenuItemProps) {
-  // Validar el tipo de imagen para evitar errores
-  let menuItemImageSource: number | { uri: string } = item.image as number | { uri: string };
-  if (typeof item.image === 'string') {
-    menuItemImageSource = { uri: item.image };
-  } else if (typeof item.image === 'object' && item.image !== null && 'uri' in item.image) {
-    menuItemImageSource = item.image as { uri: string };
-  }
   return (
     <View style={styles.menuItem}>
-      <Image source={menuItemImageSource} style={styles.menuItemImage} />
+      <Image
+        source={typeof item.image === 'string' ? { uri: item.image } : item.image}
+        style={styles.menuItemImage}
+      />
       <View style={styles.menuItemInfo}>
         <Text style={styles.menuItemName}>{item.name}</Text>
         <Text style={styles.menuItemDescription}>{item.description}</Text>
@@ -93,7 +88,7 @@ export default function RestaurantScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState('all');
-  const [cartItems, setCartItems] = useState<CartItems>({});
+  const { addItem, removeItem, items } = useCart();
   
   // Find the restaurant by ID
   const restaurant: Restaurant | undefined = mockRestaurants.find(r => r.id.toString() === id);
@@ -112,43 +107,37 @@ export default function RestaurantScreen() {
     ? restaurant.menu 
     : restaurant.menu.filter(item => item.category === activeCategory);
 
-  const handleAddItem = (item: MenuItem) => {
-    setCartItems(prev => ({
-      ...prev,
-      [item.id]: (prev[item.id] || 0) + 1
-    }));
+  // Función para agregar un item al carrito
+  const handleAddItem = async (item: MenuItem) => {
+    await addItem({ ...item, restaurant_id: restaurant.id }, 1);
+    // El context se actualiza automáticamente después de addItem
   };
 
-  const handleRemoveItem = (item: MenuItem) => {
-    setCartItems(prev => {
-      const newItems = { ...prev };
-      if (newItems[item.id] > 1) {
-        newItems[item.id] -= 1;
-      } else {
-        delete newItems[item.id];
-      }
-      return newItems;
-    });
+  // Función para remover un item del carrito
+  const handleRemoveItem = async (item: MenuItem) => {
+    const found = items.find(i => i.product_id === item.id);
+    if (found) {
+      await removeItem(found.id);
+      // El context se actualiza automáticamente después de removeItem
+    }
   };
 
-  const totalItems: number = Object.values(cartItems).reduce((sum, quantity) => sum + quantity, 0);
+  const getQuantity = (productId: number) => {
+    const found = items.find(i => i.product_id === productId);
+    return found ? found.quantity : 0;
+  };
+
+  const totalItems: number = items.reduce((sum, item) => sum + item.quantity, 0);
   
-  const totalPrice: number = Object.entries(cartItems).reduce((sum, [itemId, quantity]) => {
-    const item = restaurant.menu.find(menuItem => menuItem.id === parseInt(itemId));
-    return sum + (item ? item.price * quantity : 0);
-  }, 0);
+  const totalPrice: number = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-  // Validar el tipo de imagen para evitar errores
-  let restaurantImageSource: number | { uri: string } = restaurant.image as number | { uri: string };
-  if (typeof restaurant.image === 'string') {
-    restaurantImageSource = { uri: restaurant.image };
-  } else if (typeof restaurant.image === 'object' && restaurant.image !== null && 'uri' in restaurant.image) {
-    restaurantImageSource = restaurant.image as { uri: string };
-  }
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        <Image source={restaurantImageSource} style={styles.coverImage} />
+        <Image
+          source={typeof restaurant.image === 'string' ? { uri: restaurant.image } : restaurant.image}
+          style={styles.coverImage}
+        />
         
         <TouchableOpacity 
           style={styles.backButton}
@@ -223,7 +212,7 @@ export default function RestaurantScreen() {
               <MenuItem 
                 key={item.id}
                 item={item}
-                quantity={cartItems[item.id] || 0}
+                quantity={getQuantity(item.id)}
                 onAdd={handleAddItem}
                 onRemove={handleRemoveItem}
               />

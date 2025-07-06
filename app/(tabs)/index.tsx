@@ -146,4 +146,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#E85D04',
   },
+  restaurantImage: {
+    width: '100%',
+    height: 120,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
 });

@@ -1,99 +1,143 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Minus, Plus, MapPin, CreditCard, Truck, Clock } from 'lucide-react-native';
+import { ArrowLeft, MapPin, Minus, Plus, CreditCard, Truck, Clock } from 'lucide-react-native';
 import { useTranslation } from '@/hooks/useTranslation';
 import { mockRestaurants } from '@/data/mockData';
-
-// Mock cart data - in a real app, this would come from a cart context or state management
-const mockCartItems = [
-  { id: 1, restaurantId: 1, name: 'Burger Deluxe', price: 12.99, quantity: 2, image: 'https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1' },
-  { id: 2, restaurantId: 1, name: 'French Fries', price: 4.99, quantity: 1, image: 'https://images.pexels.com/photos/1583884/pexels-photo-1583884.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1' },
-  { id: 3, restaurantId: 1, name: 'Chocolate Milkshake', price: 5.99, quantity: 1, image: 'https://images.pexels.com/photos/3727250/pexels-photo-3727250.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1' }
-];
-
-function CartItem({ item, onIncrease, onDecrease, onRemove }) {
-  // Validar el tipo de imagen para evitar errores
-  let itemImageSource: number | { uri: string } = item.image as number | { uri: string };
-  if (typeof item.image === 'string') {
-    itemImageSource = { uri: item.image };
-  } else if (typeof item.image === 'object' && item.image !== null && 'uri' in item.image) {
-    itemImageSource = item.image as { uri: string };
-  }
-  return (
-    <View style={styles.cartItem}>
-      <Image source={itemImageSource} style={styles.itemImage} />
-      
-      <View style={styles.itemInfo}>
-        <Text style={styles.itemName}>{item.name}</Text>
-        <Text style={styles.itemPrice}>${item.price.toFixed(2)}</Text>
-      </View>
-      
-      <View style={styles.quantityControls}>
-        <TouchableOpacity 
-          style={styles.quantityButton}
-          onPress={() => item.quantity === 1 ? onRemove(item) : onDecrease(item)}
-        >
-          <Minus size={16} color="#E85D04" />
-        </TouchableOpacity>
-        
-        <Text style={styles.quantityText}>{item.quantity}</Text>
-        
-        <TouchableOpacity 
-          style={styles.quantityButton}
-          onPress={() => onIncrease(item)}
-        >
-          <Plus size={16} color="#E85D04" />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-}
+import { logTable, createOrder, debugCartItems } from '@/utils/database';
+import { useCart } from '@/contexts/CartContext';
 
 export default function CartScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const [cartItems, setCartItems] = useState(mockCartItems);
-  const [deliveryOption, setDeliveryOption] = useState('delivery'); // 'delivery' or 'pickup'
-  const [paymentMethod, setPaymentMethod] = useState('card'); // 'card', 'cash', or 'wallet'
+  const { items, addItem, removeItem, total, clearCart } = useCart();
+  const [deliveryOption, setDeliveryOption] = useState('delivery'); // 'delivery' o 'pickup'
+  const [paymentMethod, setPaymentMethod] = useState('card'); // 'card', 'cash', o 'wallet'
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Get restaurant info from the first cart item
-  const restaurant = cartItems.length > 0 
-    ? mockRestaurants.find(r => r.id === cartItems[0].restaurantId)
+  // Obtenemos la información del restaurante del primer elemento del carrito
+  const restaurant = items.length > 0 
+    ? mockRestaurants.find(r => r.id === items[0].restaurant_id || items[0].restaurantId)
     : null;
 
-  const handleIncreaseQuantity = (item) => {
-    setCartItems(prev => 
-      prev.map(cartItem => 
-        cartItem.id === item.id 
-          ? { ...cartItem, quantity: cartItem.quantity + 1 }
-          : cartItem
-      )
-    );
+  useEffect(() => {
+    // Log de las tablas para depuración
+    logTable('Cart');
+    logTable('CartItems');
+    logTable('Orders');
+    
+    // Depurar CartItems para ver exactamente qué IDs están disponibles
+    debugCartItems();
+  }, []);
+
+  const handleIncreaseQuantity = async (item: any) => {
+    // Pasamos un objeto con la estructura correcta para addItem
+    const productToAdd = {
+      id: item.product_id,
+      price: item.price,
+      restaurant_id: item.restaurant_id || item.restaurantId,
+      name: item.name,
+      image_url: item.image_url
+    };
+    await addItem(productToAdd, 1);
+    // No es necesario recalcular aquí ya que subtotal se calcula en el render
   };
 
-  const handleDecreaseQuantity = (item) => {
-    setCartItems(prev => 
-      prev.map(cartItem => 
-        cartItem.id === item.id 
-          ? { ...cartItem, quantity: cartItem.quantity - 1 }
-          : cartItem
-      )
-    );
+  const handleDecreaseQuantity = async (item: any) => {
+    console.log('Decrementando item:', item);
+    
+    try {
+      if (item.quantity === 1) {
+        // Si solo queda 1, eliminamos el item completamente
+        // Asegúrate de usar el ID correcto del elemento del carrito
+        console.log('Eliminando item del carrito con ID:', item.id);
+        await removeItem(item.id);
+      } else {
+        // Si hay más de 1, reducimos la cantidad
+        // Pasamos un objeto con la estructura correcta para addItem
+        const productToAdd = {
+          id: item.product_id,
+          price: item.price,
+          restaurant_id: item.restaurant_id || item.restaurantId,
+          name: item.name,
+          image_url: item.image_url
+        };
+        await addItem(productToAdd, -1);
+      }
+    } catch (error) {
+      // Silenciamos los errores aquí - solo registramos en la consola
+      console.log('Información: Error al modificar cantidad pero continuamos la operación:', error);
+    }
+    // No es necesario recalcular aquí ya que subtotal se calcula en el render
   };
 
-  const handleRemoveItem = (item) => {
-    setCartItems(prev => prev.filter(cartItem => cartItem.id !== item.id));
-  };
+  // Efecto para refrescar los datos del carrito cuando sea necesario
+  useEffect(() => {
+    console.log('Carrito actualizado:', items);
+  }, [items]);
 
-  const subtotal = cartItems.reduce(
+  // Calculamos el subtotal basado en los items actuales del carrito
+  const subtotal = items.reduce(
     (sum, item) => sum + (item.price * item.quantity), 
     0
   );
   
+  // Aplicamos el costo de envío según la opción seleccionada
   const deliveryFee = deliveryOption === 'delivery' ? 2.99 : 0;
   const serviceFee = 1.50;
-  const total = subtotal + deliveryFee + serviceFee;
+  // Calculamos el total final para la visualización y el checkout
+  const finalTotal = subtotal + deliveryFee + serviceFee;
+
+  const handleCheckout = async () => {
+    if (items.length === 0) {
+      Alert.alert('Error', 'Tu carrito está vacío');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // Crear pedido en la base de datos
+      // Usuario de prueba con ID 1
+      const userId = 1;
+      // Dirección y datos de prueba
+      const deliveryAddress = 'Av. Amazonas y Colón, Quito';
+      const customerName = 'Cliente de Prueba';
+      const customerPhone = '0987654321';
+      
+      // Calcular el total nuevamente para asegurar valores correctos
+      const currentSubtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const currentDeliveryFee = deliveryOption === 'delivery' ? 2.99 : 0;
+      const currentServiceFee = 1.50;
+      const currentTotal = currentSubtotal + currentDeliveryFee + currentServiceFee;
+      
+      const orderId = await createOrder(userId, deliveryAddress, customerName, customerPhone);
+      
+      if (orderId) {
+        // Limpiar carrito después de crear la orden exitosamente
+        await clearCart();
+        // Navegar a la confirmación con los datos del pedido
+        router.push({
+          pathname: '/order/confirmation',
+          params: {
+            orderId,
+            restaurantName: restaurant?.name,
+            restaurantImage: restaurant?.image,
+            subtotal: currentSubtotal.toFixed(2),
+            deliveryFee: currentDeliveryFee.toFixed(2),
+            serviceFee: currentServiceFee.toFixed(2),
+            total: currentTotal.toFixed(2)
+          }
+        });
+      } else {
+        Alert.alert('Error', 'No se pudo crear el pedido');
+      }
+    } catch (error) {
+      console.error('Error creating order:', error);
+      Alert.alert('Error', 'Ocurrió un error al procesar tu pedido');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -107,21 +151,15 @@ export default function CartScreen() {
         <Text style={styles.headerTitle}>{t('carrito')}</Text>
       </View>
 
-      {cartItems.length > 0 ? (
+      {items.length > 0 ? (
         <>
           <ScrollView style={styles.content}>
             {restaurant && (
               <View style={styles.restaurantInfo}>
-                {/* Validar el tipo de imagen para evitar errores */}
-                {(() => {
-                  let restaurantImageSource: number | { uri: string } = restaurant.image as number | { uri: string };
-                  if (typeof restaurant.image === 'string') {
-                    restaurantImageSource = { uri: restaurant.image };
-                  } else if (typeof restaurant.image === 'object' && restaurant.image !== null && 'uri' in restaurant.image) {
-                    restaurantImageSource = restaurant.image as { uri: string };
-                  }
-                  return <Image source={restaurantImageSource} style={styles.restaurantImage} />;
-                })()}
+                <Image
+                  source={typeof restaurant.image === 'string' ? { uri: restaurant.image } : restaurant.image}
+                  style={styles.restaurantImage}
+                />
                 <View style={styles.restaurantDetails}>
                   <Text style={styles.restaurantName}>{restaurant.name}</Text>
                   <View style={styles.restaurantLocation}>
@@ -136,14 +174,32 @@ export default function CartScreen() {
 
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>{t('productos')}</Text>
-              {cartItems.map(item => (
-                <CartItem 
-                  key={item.id}
-                  item={item}
-                  onIncrease={handleIncreaseQuantity}
-                  onDecrease={handleDecreaseQuantity}
-                  onRemove={handleRemoveItem}
-                />
+              {items.map(item => (
+                <View key={item.id} style={styles.cartItem}>
+                  <Image
+                    source={typeof item.image_url === 'string' ? { uri: item.image_url } : item.image_url}
+                    style={styles.itemImage}
+                  />
+                  <View style={styles.itemInfo}>
+                    <Text style={styles.itemName}>{item.name}</Text>
+                    <Text style={styles.itemPrice}>${item.price.toFixed(2)}</Text>
+                  </View>
+                  <View style={styles.quantityControls}>
+                    <TouchableOpacity 
+                      style={styles.quantityButton}
+                      onPress={() => handleDecreaseQuantity(item)}
+                    >
+                      <Minus size={16} color="#E85D04" />
+                    </TouchableOpacity>
+                    <Text style={styles.quantityText}>{item.quantity}</Text>
+                    <TouchableOpacity 
+                      style={styles.quantityButton}
+                      onPress={() => handleIncreaseQuantity(item)}
+                    >
+                      <Plus size={16} color="#E85D04" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
               ))}
             </View>
 
@@ -169,7 +225,7 @@ export default function CartScreen() {
                         deliveryOption === 'delivery' && styles.selectedOptionText
                       ]}
                     >
-                      {t('envio a domicilio')}
+                      {t('cart.delivery')}
                     </Text>
                     <Text style={styles.optionSubtitle}>
                       {t('tiempo de envío', { time: '30-45' })}
@@ -195,7 +251,7 @@ export default function CartScreen() {
                         deliveryOption === 'pickup' && styles.selectedOptionText
                       ]}
                     >
-                      {t('recoger en el local')}
+                      {t('cart.pickup')}
                     </Text>
                     <Text style={styles.optionSubtitle}>
                       {t('tiempo de preparación', { time: '15-20' })}
@@ -266,7 +322,7 @@ export default function CartScreen() {
               </View>
               
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>{t('envio gratis')}</Text>
+                <Text style={styles.summaryLabel}>{t('envio')}</Text>
                 <Text style={styles.summaryValue}>
                   {deliveryOption === 'pickup' 
                     ? t('cart.free') 
@@ -275,23 +331,26 @@ export default function CartScreen() {
               </View>
               
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>{t('servicio grati')}</Text>
+                <Text style={styles.summaryLabel}>{t('servicio')}</Text>
                 <Text style={styles.summaryValue}>${serviceFee.toFixed(2)}</Text>
               </View>
               
               <View style={[styles.summaryRow, styles.totalRow]}>
                 <Text style={styles.totalLabel}>{t('total')}</Text>
-                <Text style={styles.totalValue}>${total.toFixed(2)}</Text>
+                <Text style={styles.totalValue}>${finalTotal.toFixed(2)}</Text>
               </View>
             </View>
           </ScrollView>
 
           <View style={styles.footer}>
             <TouchableOpacity 
-              style={styles.checkoutButton}
-              onPress={() => router.push('/order/confirmation')}
+              style={[styles.checkoutButton, isSubmitting && styles.disabledButton]}
+              onPress={handleCheckout}
+              disabled={isSubmitting}
             >
-              <Text style={styles.checkoutButtonText}>{t('Ordenar')}</Text>
+              <Text style={styles.checkoutButtonText}>
+                {isSubmitting ? t('Procesando...') : t('Ordenar')}
+              </Text>
             </TouchableOpacity>
           </View>
         </>
@@ -305,7 +364,7 @@ export default function CartScreen() {
           <Text style={styles.emptyCartSubtitle}>{t('no hay productos')}</Text>
           <TouchableOpacity 
             style={styles.browseButton}
-            onPress={() => router.push('/')}
+            onPress={() => router.push('/(tabs)')}
           >
             <Text style={styles.browseButtonText}>{t('buscar restaurantes')}</Text>
           </TouchableOpacity>
@@ -520,6 +579,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 8,
     alignItems: 'center',
+  },
+  disabledButton: {
+    backgroundColor: '#ccc',
   },
   checkoutButtonText: {
     color: 'white',
