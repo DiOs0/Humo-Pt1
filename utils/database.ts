@@ -1,13 +1,113 @@
 import * as SQLite from 'expo-sqlite';
 import { mockRestaurants } from '@/data/mockData';
+import uuid from 'react-native-uuid';
 
 // Abrir la base de datos de forma síncrona
 const db = SQLite.openDatabaseSync('mydatabase.db');
 
+// --- MIGRACIÓN: Agregar campo name si no existe ---
+const migrateAddNameField = () => {
+  const userTableInfo = db.getAllSync("PRAGMA table_info(users)");
+  const hasName = userTableInfo.some((col: any) => col.name === 'name');
+  if (!hasName) {
+    db.runSync('ALTER TABLE users ADD COLUMN name TEXT');
+  }
+};
+
+// MIGRACIÓN: Cambia user_id y restaurant_id a TEXT en Cart, CartItems, Orders, OrderItems
+export const migrateCartAndOrdersToText = () => {
+  // Cart
+  db.runSync('CREATE TABLE IF NOT EXISTS Cart_new (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, restaurant_id TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)');
+  db.runSync('INSERT INTO Cart_new (id, user_id, restaurant_id, created_at) SELECT id, CAST(user_id AS TEXT), CAST(restaurant_id AS TEXT), created_at FROM Cart');
+  db.runSync('DROP TABLE IF EXISTS Cart');
+  db.runSync('ALTER TABLE Cart_new RENAME TO Cart');
+  // CartItems (no user_id, pero dependiente de Cart)
+  // Orders
+  db.runSync('CREATE TABLE IF NOT EXISTS Orders_new (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, restaurant_id TEXT, status TEXT, total_amount DECIMAL(10,2), delivery_fee DECIMAL(10,2), service_fee DECIMAL(10,2), created_at DATETIME DEFAULT CURRENT_TIMESTAMP, delivery_address TEXT, customer_name TEXT, customer_phone TEXT)');
+  db.runSync('INSERT INTO Orders_new (id, user_id, restaurant_id, status, total_amount, delivery_fee, service_fee, created_at, delivery_address, customer_name, customer_phone) SELECT id, CAST(user_id AS TEXT), CAST(restaurant_id AS TEXT), status, total_amount, delivery_fee, service_fee, created_at, delivery_address, customer_name, customer_phone FROM Orders');
+  db.runSync('DROP TABLE IF EXISTS Orders');
+  db.runSync('ALTER TABLE Orders_new RENAME TO Orders');
+  // Products y OrderItems no requieren migración de user_id
+};
+
 // Inicializar tablas
 export const initDatabase = () => {
   try {
+    migrateAddNameField();
+    migrateCartAndOrdersToText();
+    
     db.execSync(`
+      -- ESTRUCTURA EASYFOOD RELACIONAL
+      CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        role TEXT NOT NULL CHECK(role IN ('customer', 'restaurant')),
+        name TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE TABLE IF NOT EXISTS customers (
+        id TEXT PRIMARY KEY NOT NULL,
+        user_id TEXT NOT NULL,
+        full_name TEXT,
+        phone TEXT,
+        address TEXT,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+      );
+      CREATE TABLE IF NOT EXISTS restaurants (
+        id TEXT PRIMARY KEY NOT NULL,
+        user_id TEXT NOT NULL,
+        name TEXT,
+        description TEXT,
+        image_url TEXT,
+        location TEXT,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+      );
+      CREATE TABLE IF NOT EXISTS menu_items (
+        id TEXT PRIMARY KEY NOT NULL,
+        restaurant_id TEXT NOT NULL,
+        name TEXT,
+        description TEXT,
+        price REAL,
+        image_url TEXT,
+        is_available INTEGER DEFAULT 1,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(restaurant_id) REFERENCES restaurants(id)
+      );
+      CREATE TABLE IF NOT EXISTS orders_rel (
+        id TEXT PRIMARY KEY NOT NULL,
+        customer_id TEXT NOT NULL,
+        restaurant_id TEXT NOT NULL,
+        total REAL,
+        status TEXT NOT NULL CHECK(status IN ('pending', 'confirmed', 'delivered', 'cancelled')),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(customer_id) REFERENCES customers(id),
+        FOREIGN KEY(restaurant_id) REFERENCES restaurants(id)
+      );
+      CREATE TABLE IF NOT EXISTS order_items_rel (
+        id TEXT PRIMARY KEY NOT NULL,
+        order_id TEXT NOT NULL,
+        menu_item_id TEXT NOT NULL,
+        quantity INTEGER,
+        subtotal REAL,
+        FOREIGN KEY(order_id) REFERENCES orders_rel(id),
+        FOREIGN KEY(menu_item_id) REFERENCES menu_items(id)
+      );
+      CREATE TABLE IF NOT EXISTS reviews (
+        id TEXT PRIMARY KEY NOT NULL,
+        customer_id TEXT NOT NULL,
+        restaurant_id TEXT NOT NULL,
+        rating INTEGER,
+        comment TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(customer_id) REFERENCES customers(id),
+        FOREIGN KEY(restaurant_id) REFERENCES restaurants(id)
+      );
+      -- FIN ESTRUCTURA EASYFOOD RELACIONAL
+      
+      -- Estructura previa (carrito, productos, etc.)
       CREATE TABLE IF NOT EXISTS Cart (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
@@ -116,7 +216,7 @@ const insertSampleProducts = () => {
 
 // Función para agregar un producto al carrito
 export const addToCart = (
-  userId: number,
+  userId: string,
   restaurantId: number,
   productId: number,
   quantity: number,
@@ -191,7 +291,7 @@ export const addToCart = (
 };
 
 // Obtener items del carrito
-export const getCartItems = (userId: number) => {
+export const getCartItems = (userId: string) => {
   try {
     console.log('getCartItems llamado', { userId });
     
@@ -280,7 +380,7 @@ export const removeFromCart = (cartItemId: number) => {
 
 // Crear una orden desde el carrito
 export const createOrder = (
-  userId: number,
+  userId: string,
   deliveryAddress: string,
   customerName: string,
   customerPhone: string
@@ -290,20 +390,15 @@ export const createOrder = (
       'SELECT * FROM Cart WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
       [userId]
     );
-    
     if (!cart) throw new Error('No hay carrito');
-
     const items: any[] = db.getAllSync(
       'SELECT * FROM CartItems WHERE cart_id = ?',
       [cart.id]
     );
-    
     if (!items.length) throw new Error('Carrito vacío');
-
     const totalAmount = items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
     const deliveryFee = 2.99;
     const serviceFee = 1.50;
-
     db.runSync(
       `INSERT INTO Orders (
         user_id, restaurant_id, status, total_amount,
@@ -322,12 +417,10 @@ export const createOrder = (
         customerPhone
       ]
     );
-    
     const order: any = db.getFirstSync(
       'SELECT * FROM Orders WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
       [userId]
     );
-    
     // Transferir los items del carrito a la orden
     items.forEach((item: any) => {
       db.runSync(
@@ -336,11 +429,8 @@ export const createOrder = (
         [order.id, item.product_id, item.quantity, item.price, item.notes]
       );
     });
-
-    // Limpiar carrito
-    db.runSync('DELETE FROM CartItems WHERE cart_id = ?', [cart.id]);
-    db.runSync('DELETE FROM Cart WHERE id = ?', [cart.id]);
-    
+    // Limpiar solo el carrito del usuario actual
+    clearUserCart(userId);
     return order.id;
   } catch (error) {
     console.error('Error creating order:', error);
@@ -429,4 +519,57 @@ export const debugCartItems = () => {
     console.error('Error en debugCartItems:', error);
     return [];
   }
+};
+
+// ================= FUNCIONES EASYFOOD RELACIONAL ===================
+
+// Insertar usuario
+export const getUserByEmail = (email: string) => {
+  const result = db.getFirstSync('SELECT * FROM users WHERE email = ?', [email]);
+  return result;
+};
+
+// Modificar insertUser para lanzar error si el correo ya existe
+export const insertUser = (user: { id?: string, email: string, password: string, role: string }) => {
+  const existing = db.getFirstSync('SELECT * FROM users WHERE email = ?', [user.email]);
+  if (existing) {
+    throw new Error('El correo ya está registrado');
+  }
+  const userId = user.id || uuid.v4();
+  db.runSync(
+    'INSERT INTO users (id, email, password, role) VALUES (?, ?, ?, ?)',
+    [userId, user.email, user.password, user.role]
+  );
+  return userId;
+};
+
+// Elimina usuario y todos sus datos relacionados (pedidos, reviews, etc)
+export const deleteUserAndData = (userId: string) => {
+  // Eliminar reviews
+  db.runSync('DELETE FROM reviews WHERE customer_id = (SELECT id FROM customers WHERE user_id = ?)', [userId]);
+  // Eliminar order_items_rel y orders_rel
+  db.runSync('DELETE FROM order_items_rel WHERE order_id IN (SELECT id FROM orders_rel WHERE customer_id = (SELECT id FROM customers WHERE user_id = ?))', [userId]);
+  db.runSync('DELETE FROM orders_rel WHERE customer_id = (SELECT id FROM customers WHERE user_id = ?)', [userId]);
+  // Eliminar carrito y sus items
+  clearUserCart(userId);
+  // Eliminar customer
+  db.runSync('DELETE FROM customers WHERE user_id = ?', [userId]);
+  // Eliminar usuario
+  db.runSync('DELETE FROM users WHERE id = ?', [userId]);
+};
+
+// Actualizar nombre de usuario
+export const updateUserName = (userId: string, name: string) => {
+  const db = require('expo-sqlite').openDatabaseSync('mydatabase.db');
+  db.runSync('UPDATE users SET name = ? WHERE id = ?', [name, userId]);
+};
+
+// Limpiar carrito del usuario (y sus items) al eliminar cuenta o cerrar sesión
+export const clearUserCart = (userId: string) => {
+  // Eliminar items del carrito del usuario
+  const carts = db.getAllSync('SELECT id FROM Cart WHERE user_id = ?', [userId]);
+  carts.forEach((cart: any) => {
+    db.runSync('DELETE FROM CartItems WHERE cart_id = ?', [cart.id]);
+  });
+  db.runSync('DELETE FROM Cart WHERE user_id = ?', [userId]);
 };

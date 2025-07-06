@@ -1,9 +1,12 @@
-import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Switch, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Switch, ScrollView, Alert, TextInput } from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { LogOut, ChevronRight, Bell, CreditCard, Globe, HelpCircle, Settings, ShieldCheck, User2, Store } from 'lucide-react-native';
 import { useTranslation } from '@/hooks/useTranslation';
 import * as FileSystem from 'expo-file-system';
+import { deleteUserAndData, getUserByEmail, updateUserName } from '@/utils/database';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
 
 interface ProfileMenuItemProps {
   icon: any;
@@ -56,11 +59,40 @@ export default function ProfileScreen() {
   const { toggleLanguage, currentLanguage } = useTranslation();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [isVendorMode, setIsVendorMode] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState('');
 
   const switchToVendorMode = () => {
     setIsVendorMode(true);
     router.push('/vendor/dashboard');
   };
+
+  useEffect(() => {
+    (async () => {
+      const email = await AsyncStorage.getItem('userEmail');
+      if (email) {
+        const userData = getUserByEmail(email);
+        setUser(userData);
+        if (userData?.image_url) setProfileImage(userData.image_url);
+        setNameInput(userData?.name || '');
+      }
+    })();
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      (async () => {
+        const email = await AsyncStorage.getItem('userEmail');
+        if (email) {
+          const userData = getUserByEmail(email) as any;
+          setUser(userData);
+          if (userData && userData.image_url) setProfileImage(userData.image_url);
+        }
+      })();
+    }, [])
+  );
 
   useEffect(() => {
     (async () => {
@@ -74,6 +106,66 @@ export default function ProfileScreen() {
     })();
   }, []);
 
+  const handleDeleteAccount = async () => {
+    try {
+      // Obtener el email del usuario guardado en AsyncStorage
+      const email = await AsyncStorage.getItem('userEmail');
+      if (!email) {
+        Alert.alert('Error', 'No se encontró el usuario actual.');
+        return;
+      }
+      const user = getUserByEmail(email);
+      if (!user) {
+        Alert.alert('Error', 'No se encontró el usuario en la base de datos.');
+        return;
+      }
+      deleteUserAndData(user.id);
+      await AsyncStorage.removeItem('userEmail');
+      Alert.alert('Cuenta eliminada', 'Tu cuenta y todos tus datos han sido eliminados.');
+      router.replace('/auth/login');
+    } catch (e) {
+      Alert.alert('Error', 'No se pudo eliminar la cuenta.');
+    }
+  };
+
+  const handlePickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      const uri = result.assets[0].uri;
+      setProfileImage(uri);
+      // Actualiza la base de datos con la nueva imagen
+      if (user) {
+        // Actualiza el campo image_url en la tabla users
+        // Si tienes una función updateUserImage, úsala. Si no, puedes hacer:
+        const db = require('expo-sqlite').openDatabaseSync('mydatabase.db');
+        db.runSync('UPDATE users SET image_url = ? WHERE id = ?', [uri, user.id]);
+        setUser({ ...user, image_url: uri });
+      }
+    }
+  };
+
+  const handleEditName = () => {
+    setEditingName(true);
+  };
+
+  const handleSaveName = () => {
+    if (!nameInput.trim()) {
+      Alert.alert('Error', 'El nombre no puede estar vacío.');
+      return;
+    }
+    if (user) {
+      updateUserName(user.id, nameInput);
+      setUser({ ...user, name: nameInput });
+      setEditingName(false);
+      Alert.alert('Éxito', 'Nombre actualizado correctamente.');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -83,16 +175,13 @@ export default function ProfileScreen() {
       <ScrollView>
         <View style={styles.profileSection}>
           <Image
-            source={require("../../assets/login/fotoperfil.png")}
+            source={profileImage ? { uri: profileImage } : require('../../assets/login/fotoperfil.png')}
             style={styles.profileImage}
           />
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>Jhon Laverde</Text>
-            <Text style={styles.profileEmail}>laverdejohn@hotmail.com</Text>
+            <Text style={styles.profileName}>{user?.name || 'Usuario'}</Text>
+            <Text style={styles.profileEmail}>{user?.email || ''}</Text>
           </View>
-          <TouchableOpacity style={styles.editButton}>
-            <Text style={styles.editButtonText}>Editar</Text>
-          </TouchableOpacity>
         </View>
 
         <View style={styles.sectionTitle}>
@@ -174,7 +263,7 @@ export default function ProfileScreen() {
 
         <TouchableOpacity 
           style={styles.logoutButton}
-          onPress={() => router.push('/auth/login')}
+          onPress={handleDeleteAccount}
         >
           <LogOut size={20} color="#E53935" />
           <Text style={styles.logoutText}>Cerrar Sesión</Text>
@@ -226,18 +315,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginTop: 4,
-  },
-  editButton: {
-    backgroundColor: '#FFF0E6',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#FFE0CC',
-  },
-  editButtonText: {
-    color: '#E85D04',
-    fontWeight: '500',
   },
   sectionTitle: {
     paddingHorizontal: 16,
@@ -341,5 +418,14 @@ const styles = StyleSheet.create({
   versionText: {
     fontSize: 12,
     color: '#999',
+  },
+  input: {
+    fontSize: 20,
+    borderBottomWidth: 1,
+    borderColor: '#ccc',
+    marginBottom: 8,
+    width: 200,
+    textAlign: 'center',
+    color: '#333',
   },
 });

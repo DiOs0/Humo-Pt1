@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react-native';
 import GoogleIcon from '@/components/auth/GoogleIcon';
+import { insertUser, getUserByEmail, deleteUserAndData } from '@/utils/database';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -12,14 +14,58 @@ export default function LoginScreen() {
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = () => {
-    // In a real app, this would validate inputs and make API calls
-    console.log({ email, password, name });
-    router.push('/(tabs)');
+  const handleSubmit = async () => {
+    if (!email || !password) {
+      Alert.alert('Advertencia', 'Ingrese usuario y contraseña');
+      return;
+    }
+    if (isLogin) {
+      // Lógica de login
+      const user = getUserByEmail(email);
+      if (user && user.password === password) {
+        // Guardar el usuario en AsyncStorage para futuras acciones
+        await AsyncStorage.setItem('userEmail', email);
+        router.push('/(tabs)');
+      } else {
+        Alert.alert('Error', 'Usuario o contraseña incorrectos');
+      }
+    } else {
+      // Lógica de registro
+      try {
+        insertUser({ email, password, role: 'customer' });
+        Alert.alert('Éxito', 'Cuenta creada, ahora puede iniciar sesión');
+        setIsLogin(true);
+      } catch (e: any) {
+        Alert.alert('Error', e.message || 'No se pudo crear la cuenta. ¿Ya existe ese correo?');
+      }
+    }
   };
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
+  };
+
+  // Ejemplo de uso en tu pantalla de perfil:
+  // Supón que tienes el email guardado en AsyncStorage como 'userEmail'
+  const handleDeleteAccount = async () => {
+    try {
+      const email = await AsyncStorage.getItem('userEmail');
+      if (!email) {
+        Alert.alert('Error', 'No se encontró el usuario actual.');
+        return;
+      }
+      const user = getUserByEmail(email);
+      if (!user) {
+        Alert.alert('Error', 'No se encontró el usuario en la base de datos.');
+        return;
+      }
+      deleteUserAndData(user.id);
+      await AsyncStorage.removeItem('userEmail');
+      Alert.alert('Cuenta eliminada', 'Tu cuenta y todos tus datos han sido eliminados.');
+      router.replace('/auth/login');
+    } catch (e) {
+      Alert.alert('Error', 'No se pudo eliminar la cuenta.');
+    }
   };
 
   return (

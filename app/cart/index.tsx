@@ -1,143 +1,118 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, MapPin, Minus, Plus, CreditCard, Truck, Clock } from 'lucide-react-native';
 import { useTranslation } from '@/hooks/useTranslation';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getCartItems, addToCart, removeFromCart, createOrder, getUserByEmail } from '@/utils/database';
 import { mockRestaurants } from '@/data/mockData';
-import { logTable, createOrder, debugCartItems } from '@/utils/database';
-import { useCart } from '@/contexts/CartContext';
 
 export default function CartScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { items, addItem, removeItem, total, clearCart } = useCart();
-  const [deliveryOption, setDeliveryOption] = useState('delivery'); // 'delivery' o 'pickup'
-  const [paymentMethod, setPaymentMethod] = useState('card'); // 'card', 'cash', o 'wallet'
+  const [userId, setUserId] = useState<string | null>(null);
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [deliveryOption, setDeliveryOption] = useState('delivery');
+  const [paymentMethod, setPaymentMethod] = useState('card');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Obtenemos la información del restaurante del primer elemento del carrito
-  const restaurant = items.length > 0 
-    ? mockRestaurants.find(r => r.id === items[0].restaurant_id || items[0].restaurantId)
-    : null;
 
+  // Obtener userId de AsyncStorage
   useEffect(() => {
-    // Log de las tablas para depuración
-    logTable('Cart');
-    logTable('CartItems');
-    logTable('Orders');
-    
-    // Depurar CartItems para ver exactamente qué IDs están disponibles
-    debugCartItems();
+    const fetchUserId = async () => {
+      const email = await AsyncStorage.getItem('userEmail');
+      if (!email) return;
+      const user = getUserByEmail(email);
+      if (user && user.id) setUserId(user.id);
+    };
+    fetchUserId();
   }, []);
 
-  const handleIncreaseQuantity = async (item: any) => {
-    // Pasamos un objeto con la estructura correcta para addItem
-    const productToAdd = {
-      id: item.product_id,
-      price: item.price,
-      restaurant_id: item.restaurant_id || item.restaurantId,
-      name: item.name,
-      image_url: item.image_url
-    };
-    await addItem(productToAdd, 1);
-    // No es necesario recalcular aquí ya que subtotal se calcula en el render
-  };
-
-  const handleDecreaseQuantity = async (item: any) => {
-    console.log('Decrementando item:', item);
-    
+  // Cargar items del carrito desde la base de datos
+  const loadCart = useCallback(() => {
+    if (!userId) return;
+    setLoading(true);
     try {
-      if (item.quantity === 1) {
-        // Si solo queda 1, eliminamos el item completamente
-        // Asegúrate de usar el ID correcto del elemento del carrito
-        console.log('Eliminando item del carrito con ID:', item.id);
-        await removeItem(item.id);
-      } else {
-        // Si hay más de 1, reducimos la cantidad
-        // Pasamos un objeto con la estructura correcta para addItem
-        const productToAdd = {
-          id: item.product_id,
-          price: item.price,
-          restaurant_id: item.restaurant_id || item.restaurantId,
-          name: item.name,
-          image_url: item.image_url
-        };
-        await addItem(productToAdd, -1);
-      }
-    } catch (error) {
-      // Silenciamos los errores aquí - solo registramos en la consola
-      console.log('Información: Error al modificar cantidad pero continuamos la operación:', error);
+      const cartItems = getCartItems(userId);
+      setItems(cartItems);
+    } catch (e) {
+      setItems([]);
+    } finally {
+      setLoading(false);
     }
-    // No es necesario recalcular aquí ya que subtotal se calcula en el render
+  }, [userId]);
+
+  useEffect(() => {
+    if (userId) loadCart();
+  }, [userId, loadCart]);
+
+  // Recargar carrito cada vez que se añade o elimina producto
+  const handleIncreaseQuantity = async (item: any) => {
+    if (!userId) return;
+    await addToCart(userId, item.restaurant_id, item.product_id, 1, item.price, item.notes || '');
+    loadCart();
+  };
+  const handleDecreaseQuantity = async (item: any) => {
+    if (!userId) return;
+    if (item.quantity === 1) {
+      await removeFromCart(item.id);
+    } else {
+      await addToCart(userId, item.restaurant_id, item.product_id, -1, item.price, item.notes || '');
+    }
+    loadCart();
   };
 
-  // Efecto para refrescar los datos del carrito cuando sea necesario
-  useEffect(() => {
-    console.log('Carrito actualizado:', items);
-  }, [items]);
-
-  // Calculamos el subtotal basado en los items actuales del carrito
-  const subtotal = items.reduce(
-    (sum, item) => sum + (item.price * item.quantity), 
-    0
-  );
-  
-  // Aplicamos el costo de envío según la opción seleccionada
+  // Calcular totales
+  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const deliveryFee = deliveryOption === 'delivery' ? 2.99 : 0;
   const serviceFee = 1.50;
-  // Calculamos el total final para la visualización y el checkout
   const finalTotal = subtotal + deliveryFee + serviceFee;
 
+  // Obtener info del restaurante real
+  const restaurant = items.length > 0
+    ? mockRestaurants.find(r => r.id == items[0].restaurant_id)
+    : null;
+
+  // Checkout
   const handleCheckout = async () => {
+    if (!userId) return;
     if (items.length === 0) {
       Alert.alert('Error', 'Tu carrito está vacío');
       return;
     }
-
     setIsSubmitting(true);
     try {
-      // Crear pedido en la base de datos
-      // Usuario de prueba con ID 1
-      const userId = 1;
-      // Dirección y datos de prueba
-      const deliveryAddress = 'Av. Amazonas y Colón, Quito';
-      const customerName = 'Cliente de Prueba';
-      const customerPhone = '0987654321';
-      
-      // Calcular el total nuevamente para asegurar valores correctos
-      const currentSubtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-      const currentDeliveryFee = deliveryOption === 'delivery' ? 2.99 : 0;
-      const currentServiceFee = 1.50;
-      const currentTotal = currentSubtotal + currentDeliveryFee + currentServiceFee;
-      
+      const deliveryAddress = 'Dirección de ejemplo';
+      const customerName = 'Nombre de ejemplo';
+      const customerPhone = '0999999999';
       const orderId = await createOrder(userId, deliveryAddress, customerName, customerPhone);
-      
       if (orderId) {
-        // Limpiar carrito después de crear la orden exitosamente
-        await clearCart();
-        // Navegar a la confirmación con los datos del pedido
+        setItems([]);
         router.push({
           pathname: '/order/confirmation',
           params: {
             orderId,
             restaurantName: restaurant?.name,
             restaurantImage: restaurant?.image,
-            subtotal: currentSubtotal.toFixed(2),
-            deliveryFee: currentDeliveryFee.toFixed(2),
-            serviceFee: currentServiceFee.toFixed(2),
-            total: currentTotal.toFixed(2)
+            subtotal: subtotal.toFixed(2),
+            deliveryFee: deliveryFee.toFixed(2),
+            serviceFee: serviceFee.toFixed(2),
+            total: finalTotal.toFixed(2)
           }
         });
       } else {
         Alert.alert('Error', 'No se pudo crear el pedido');
       }
     } catch (error) {
-      console.error('Error creating order:', error);
       Alert.alert('Error', 'Ocurrió un error al procesar tu pedido');
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  if (loading) {
+    return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator size={'large'} /></View>;
+  }
 
   return (
     <View style={styles.container}>

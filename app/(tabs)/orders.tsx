@@ -1,9 +1,10 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowRight, Clock } from 'lucide-react-native';
 import { useTranslation } from '@/hooks/useTranslation';
-import { mockOrders } from '@/data/mockData';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getOrders, getOrderDetails, getUserByEmail } from '@/utils/database';
 
 type OrderStatus = 'preparing' | 'ready' | 'delivering' | 'completed' | 'cancelled';
 
@@ -123,12 +124,58 @@ function OrderItem({ order, onPress }: OrderItemProps) {
 export default function OrdersScreen() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'active' | 'past'>('active');
+  const [userId, setUserId] = useState<string | null>(null);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const activeOrders = mockOrders.filter((order): order is Order => 
+  useEffect(() => {
+    const fetchUserId = async () => {
+      const email = await AsyncStorage.getItem('userEmail');
+      if (!email) return;
+      const user = getUserByEmail(email);
+      if (user && user.id) setUserId(user.id);
+    };
+    fetchUserId();
+  }, []);
+
+  const loadOrders = useCallback(() => {
+    if (!userId) return;
+    setLoading(true);
+    try {
+      const dbOrders = getOrders(userId);
+      setOrders(dbOrders);
+    } catch (e) {
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    if (userId) loadOrders();
+  }, [userId, loadOrders]);
+
+  // Map orders to UI format
+  const mappedOrders = orders.map((order: any) => {
+    // Puedes obtener detalles de los items si lo necesitas
+    const details = getOrderDetails(order.id);
+    return {
+      id: order.id,
+      restaurantId: order.restaurant_id,
+      restaurantName: order.restaurant_id, // Puedes mapear el nombre real si tienes la tabla de restaurantes
+      restaurantImage: details?.items?.[0]?.image_url || '',
+      status: order.status,
+      date: order.created_at,
+      total: order.total_amount,
+      customerName: order.customer_name,
+      items: details?.items || [],
+    };
+  });
+
+  const activeOrders = mappedOrders.filter((order: any) =>
     ['preparing', 'ready', 'delivering'].includes(order.status)
   );
-
-  const pastOrders = mockOrders.filter((order): order is Order => 
+  const pastOrders = mappedOrders.filter((order: any) =>
     ['completed', 'cancelled'].includes(order.status)
   );
 
@@ -140,7 +187,7 @@ export default function OrdersScreen() {
     router.push('/');
   };
 
-  const renderOrderItem = ({ item }: { item: Order }) => (
+  const renderOrderItem = ({ item }: { item: any }) => (
     <OrderItem
       order={item}
       onPress={() => handleOrderPress(item.id)}
@@ -148,26 +195,24 @@ export default function OrdersScreen() {
   );
 
   const renderEmptyState = () => {
-    const isEmpty = activeTab === 'active' 
-      ? activeOrders.length === 0 
+    const isEmpty = activeTab === 'active'
+      ? activeOrders.length === 0
       : pastOrders.length === 0;
-
     if (!isEmpty) return null;
-
     return (
       <View style={styles.emptyState}>
         <Text style={styles.emptyStateTitle}>
           {activeTab === 'active'
-            ? 'No tienes pedidos activos' 
+            ? 'No tienes pedidos activos'
             : 'No tienes pedidos anteriores'}
         </Text>
         <Text style={styles.emptyStateText}>
           {activeTab === 'active'
-            ? 'Explorar Restaurantes' 
+            ? 'Explorar Restaurantes'
             : 'Historial de Pedidos'}
         </Text>
         {activeTab === 'active' && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.browseButton}
             onPress={handleBrowsePress}
           >
@@ -177,6 +222,10 @@ export default function OrdersScreen() {
       </View>
     );
   };
+
+  if (loading) {
+    return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator size={'large'} /></View>;
+  }
 
   return (
     <View style={styles.container}>
