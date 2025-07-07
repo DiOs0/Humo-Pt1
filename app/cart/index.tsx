@@ -1,116 +1,111 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator, DeviceEventEmitter } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, MapPin, Minus, Plus, CreditCard, Truck, Clock } from 'lucide-react-native';
 import { useTranslation } from '@/hooks/useTranslation';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getCartItems, addToCart, removeFromCart, createOrder, getUserByEmail } from '@/utils/database';
 import { mockRestaurants } from '@/data/mockData';
+import { useCart } from '@/contexts/CartContext';
+import { createOrder, updateOrderStatus } from '@/utils/database';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ordersEventEmitter } from '../(tabs)/orders';
 
 export default function CartScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const [userId, setUserId] = useState<string | null>(null);
-  const [items, setItems] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { items, addItem, removeItem, clearCart, total, isLoading } = useCart();
   const [deliveryOption, setDeliveryOption] = useState('delivery');
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Obtener userId de AsyncStorage
-  useEffect(() => {
-    const fetchUserId = async () => {
-      const email = await AsyncStorage.getItem('userEmail');
-      if (!email) return;
-      const user = getUserByEmail(email);
-      if (user && user.id) setUserId(user.id);
-    };
-    fetchUserId();
-  }, []);
-
-  // Cargar items del carrito desde la base de datos
-  const loadCart = useCallback(() => {
-    if (!userId) return;
-    setLoading(true);
-    try {
-      const cartItems = getCartItems(userId);
-      setItems(cartItems);
-    } catch (e) {
-      setItems([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    if (userId) loadCart();
-  }, [userId, loadCart]);
-
-  // Recargar carrito cada vez que se añade o elimina producto
-  const handleIncreaseQuantity = async (item: any) => {
-    if (!userId) return;
-    await addToCart(userId, item.restaurant_id, item.product_id, 1, item.price, item.notes || '');
-    loadCart();
-  };
-  const handleDecreaseQuantity = async (item: any) => {
-    if (!userId) return;
-    if (item.quantity === 1) {
-      await removeFromCart(item.id);
-    } else {
-      await addToCart(userId, item.restaurant_id, item.product_id, -1, item.price, item.notes || '');
-    }
-    loadCart();
-  };
+  const [updatingItemId, setUpdatingItemId] = useState<number | null>(null);
 
   // Calcular totales
-  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const subtotal = total;
   const deliveryFee = deliveryOption === 'delivery' ? 2.99 : 0;
   const serviceFee = 1.50;
   const finalTotal = subtotal + deliveryFee + serviceFee;
 
   // Obtener info del restaurante real
   const restaurant = items.length > 0
-    ? mockRestaurants.find(r => r.id == items[0].restaurant_id)
+    ? mockRestaurants.find(r => r.id == (items[0].restaurant_id || items[0].restaurantId))
     : null;
 
-  // Checkout
+  // Handlers de cantidad
+  const handleIncreaseQuantity = async (item: any) => {
+    if (updatingItemId || isSubmitting) return;
+    setUpdatingItemId(item.id);
+    try {
+      await addItem(item, 1, item.notes || '');
+    } finally {
+      setUpdatingItemId(null);
+    }
+  };
+  const handleDecreaseQuantity = async (item: any) => {
+    if (updatingItemId || isSubmitting) return;
+    setUpdatingItemId(item.id);
+    try {
+      if (item.quantity === 1) {
+        await removeItem(item.id);
+      } else {
+        await addItem(item, -1, item.notes || '');
+      }
+    } finally {
+      setUpdatingItemId(null);
+    }
+  };
+
+  // Checkout (puedes adaptar createOrder según tu lógica actual)
   const handleCheckout = async () => {
-    if (!userId) return;
     if (items.length === 0) {
       Alert.alert('Error', 'Tu carrito está vacío');
       return;
     }
     setIsSubmitting(true);
     try {
+      // Obtener el userId real
+      const email = await AsyncStorage.getItem('userEmail');
+      let userId = '1';
+      if (email) {
+        const user = require('@/utils/database').getUserByEmail(email);
+        if (user && user.id) userId = user.id;
+      }
+      // LOGS DE DEPURACIÓN
+      console.log('Checkout: userId', userId, 'items', items);
+      // Crear la orden y obtener el ID
       const deliveryAddress = 'Dirección de ejemplo';
       const customerName = 'Nombre de ejemplo';
       const customerPhone = '0999999999';
-      const orderId = await createOrder(userId, deliveryAddress, customerName, customerPhone);
+      const orderId = await createOrder(
+        userId,
+        deliveryAddress,
+        customerName,
+        customerPhone
+      );
+      // No limpiar el carrito aquí, la base de datos lo hace tras crear la orden
+      // Programar actualización de estado a 'completed' en 15 segundos
       if (orderId) {
-        setItems([]);
-        router.push({
-          pathname: '/order/confirmation',
-          params: {
-            orderId,
-            restaurantName: restaurant?.name,
-            restaurantImage: restaurant?.image,
-            subtotal: subtotal.toFixed(2),
-            deliveryFee: deliveryFee.toFixed(2),
-            serviceFee: serviceFee.toFixed(2),
-            total: finalTotal.toFixed(2)
-          }
-        });
-      } else {
-        Alert.alert('Error', 'No se pudo crear el pedido');
+        setTimeout(() => {
+          updateOrderStatus(orderId, 'completed');
+        }, 15000);
+        // Emitir evento para refrescar pedidos
+        DeviceEventEmitter.emit('refreshOrders');
       }
+      router.push('/order/confirmation');
     } catch (error) {
-      Alert.alert('Error', 'Ocurrió un error al procesar tu pedido');
+      // Mostrar el error real
+      let errorMsg = 'Ocurrió un error al procesar tu pedido.';
+      if (typeof error === 'object' && error !== null && 'message' in error) {
+        errorMsg = (error as any).message;
+      } else if (typeof error === 'string') {
+        errorMsg = error;
+      }
+      console.log('Error real al crear orden:', error);
+      Alert.alert('Error', errorMsg);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator size={'large'} /></View>;
   }
 
@@ -163,6 +158,7 @@ export default function CartScreen() {
                     <TouchableOpacity 
                       style={styles.quantityButton}
                       onPress={() => handleDecreaseQuantity(item)}
+                      disabled={updatingItemId === item.id}
                     >
                       <Minus size={16} color="#E85D04" />
                     </TouchableOpacity>
@@ -170,6 +166,7 @@ export default function CartScreen() {
                     <TouchableOpacity 
                       style={styles.quantityButton}
                       onPress={() => handleIncreaseQuantity(item)}
+                      disabled={updatingItemId === item.id}
                     >
                       <Plus size={16} color="#E85D04" />
                     </TouchableOpacity>
@@ -207,7 +204,7 @@ export default function CartScreen() {
                     </Text>
                   </View>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity
                   style={[
                     styles.optionButton,
@@ -332,11 +329,11 @@ export default function CartScreen() {
       ) : (
         <View style={styles.emptyCartContainer}>
           <Image 
-            source={{ uri: 'https://images.pexels.com/photos/5677794/pexels-photo-5677794.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1' }}
+            source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2038/2038854.png' }}
             style={styles.emptyCartImage}
           />
-          <Text style={styles.emptyCartTitle}>{t('carrito vacio')}</Text>
-          <Text style={styles.emptyCartSubtitle}>{t('no hay productos')}</Text>
+          <Text style={styles.emptyCartTitle}>¡Tu carrito está vacío!</Text>
+          <Text style={styles.emptyCartSubtitle}>Agrega productos deliciosos y aparecerán aquí. ¡Explora restaurantes y disfruta!</Text>
           <TouchableOpacity 
             style={styles.browseButton}
             onPress={() => router.push('/(tabs)')}

@@ -5,6 +5,8 @@ import { ArrowRight, Clock } from 'lucide-react-native';
 import { useTranslation } from '@/hooks/useTranslation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getOrders, getOrderDetails, getUserByEmail } from '@/utils/database';
+import { mockRestaurants } from '@/data/mockData';
+import { DeviceEventEmitter } from 'react-native';
 
 type OrderStatus = 'preparing' | 'ready' | 'delivering' | 'completed' | 'cancelled';
 
@@ -128,21 +130,11 @@ export default function OrdersScreen() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchUserId = async () => {
-      const email = await AsyncStorage.getItem('userEmail');
-      if (!email) return;
-      const user = getUserByEmail(email);
-      if (user && user.id) setUserId(user.id);
-    };
-    fetchUserId();
-  }, []);
-
   const loadOrders = useCallback(() => {
     if (!userId) return;
     setLoading(true);
     try {
-      const dbOrders = getOrders(userId);
+      const dbOrders = getOrders(userId); // userId es string
       setOrders(dbOrders);
     } catch (e) {
       setOrders([]);
@@ -151,19 +143,41 @@ export default function OrdersScreen() {
     }
   }, [userId]);
 
+  // Escuchar evento de nuevos pedidos
+  useEffect(() => {
+    const refreshListener = () => {
+      if (userId) loadOrders();
+    };
+    const subscription = DeviceEventEmitter.addListener('refreshOrders', refreshListener);
+    return () => {
+      subscription.remove();
+    };
+  }, [userId, loadOrders]);
+
+  useEffect(() => {
+    const fetchUserId = async () => {
+      const email = await AsyncStorage.getItem('userEmail');
+      if (!email) return;
+      const user: any = getUserByEmail(email);
+      if (user && user.id) setUserId(user.id);
+    };
+    fetchUserId();
+  }, []);
+
   useEffect(() => {
     if (userId) loadOrders();
   }, [userId, loadOrders]);
 
   // Map orders to UI format
   const mappedOrders = orders.map((order: any) => {
-    // Puedes obtener detalles de los items si lo necesitas
     const details = getOrderDetails(order.id);
+    // Buscar restaurante real
+    const restaurant = mockRestaurants.find(r => r.id == (order.restaurant_id || order.restaurantId));
     return {
       id: order.id,
-      restaurantId: order.restaurant_id,
-      restaurantName: order.restaurant_id, // Puedes mapear el nombre real si tienes la tabla de restaurantes
-      restaurantImage: details?.items?.[0]?.image_url || '',
+      restaurantId: order.restaurant_id || order.restaurantId,
+      restaurantName: restaurant?.name || order.restaurant_id || 'Restaurante',
+      restaurantImage: restaurant?.image || details?.items?.[0]?.image_url || '',
       status: order.status,
       date: order.created_at,
       total: order.total_amount,

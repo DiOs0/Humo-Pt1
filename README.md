@@ -47,6 +47,7 @@ npm install uuid // genera errores
 npm install --save-dev @types/uuid
 
 npm install react-native-uuid
+
 3. Instala las herramientas de desarrollo:
 
 ```bash

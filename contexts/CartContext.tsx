@@ -23,6 +23,7 @@ interface CartContextType {
   clearCart: () => Promise<void>;
   total: number;
   isLoading: boolean;
+  reloadCart: () => Promise<void>; // <-- Nueva función para recargar el carrito
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -32,18 +33,16 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   // Usuario temporal para pruebas
-  const userId = 1;
+  const userId = '1'; // Cambiado a string para compatibilidad
 
-  // Función para cargar los elementos del carrito
+  // Permitir recarga manual del carrito desde fuera
   const loadCartItems = async () => {
     try {
       setIsLoading(true);
       const cartItems = await Database.getCartItems(userId);
-      console.log('Elementos del carrito cargados:', cartItems);
       setItems(cartItems as CartItem[]);
       setIsLoading(false);
     } catch (error) {
-      console.error('Error loading cart items:', error);
       setIsLoading(false);
     }
   };
@@ -61,6 +60,10 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       if (!restaurantId) {
         Alert.alert('Error', 'No se pudo identificar el restaurante del producto');
         return;
+      }
+      // Si el carrito actual tiene productos y el restaurante es diferente, limpiar el carrito antes de agregar
+      if (items.length > 0 && items[0].restaurant_id !== restaurantId && items[0].restaurantId !== restaurantId) {
+        await clearCart();
       }
       await Database.addToCart(
         userId,
@@ -120,6 +123,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
         clearCart,
         total,
         isLoading,
+        reloadCart: loadCartItems, // <-- Exponer función para recargar
       }}
     >
       {children}

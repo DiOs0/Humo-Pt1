@@ -245,11 +245,9 @@ export const addToCart = (
       );
       cartId = newCart?.id;
     }
-
-    // Si todavía no tenemos cartId, algo salió mal
+    // Validación extra: si aún no hay cartId, lanzar error explícito
     if (!cartId) {
-      console.error('No se pudo crear o encontrar el carrito');
-      return;
+      throw new Error('No se pudo crear el carrito para el usuario');
     }
 
     // Verificar si el producto ya está en el carrito
@@ -439,7 +437,7 @@ export const createOrder = (
 };
 
 // Obtener órdenes del usuario
-export const getOrders = (userId: number) => {
+export const getOrders = (userId: string) => {
   try {
     return db.getAllSync(
       `SELECT o.*, 
@@ -565,11 +563,18 @@ export const updateUserName = (userId: string, name: string) => {
 };
 
 // Limpiar carrito del usuario (y sus items) al eliminar cuenta o cerrar sesión
-export const clearUserCart = (userId: string) => {
-  // Eliminar items del carrito del usuario
-  const carts = db.getAllSync('SELECT id FROM Cart WHERE user_id = ?', [userId]);
-  carts.forEach((cart: any) => {
-    db.runSync('DELETE FROM CartItems WHERE cart_id = ?', [cart.id]);
+export const clearUserCart = async (userId: string) => {
+  return new Promise<void>((resolve, reject) => {
+    try {
+      const carts = db.getAllSync('SELECT id FROM Cart WHERE user_id = ?', [userId]);
+      carts.forEach((cart: any) => {
+        db.runSync('DELETE FROM CartItems WHERE cart_id = ?', [cart.id]);
+      });
+      db.runSync('DELETE FROM Cart WHERE user_id = ?', [userId]);
+      db.runSync('VACUUM'); // Limpia la base de datos y asegura que no queden residuos
+      resolve();
+    } catch (e) {
+      reject(e);
+    }
   });
-  db.runSync('DELETE FROM Cart WHERE user_id = ?', [userId]);
 };

@@ -6,6 +6,14 @@ import GoogleIcon from '@/components/auth/GoogleIcon';
 import { insertUser, getUserByEmail, deleteUserAndData } from '@/utils/database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// Definir tipo para el usuario
+interface User {
+  id: string;
+  email: string;
+  password: string;
+  // Puedes agregar más campos si los necesitas
+}
+
 export default function LoginScreen() {
   const router = useRouter();
   const [isLogin, setIsLogin] = useState(true);
@@ -13,30 +21,43 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
     if (!email || !password) {
       Alert.alert('Advertencia', 'Ingrese usuario y contraseña');
       return;
     }
+    setIsSubmitting(true);
     if (isLogin) {
       // Lógica de login
-      const user = getUserByEmail(email);
-      if (user && user.password === password) {
-        // Guardar el usuario en AsyncStorage para futuras acciones
-        await AsyncStorage.setItem('userEmail', email);
-        router.push('/(tabs)');
-      } else {
-        Alert.alert('Error', 'Usuario o contraseña incorrectos');
+      try {
+        const user = getUserByEmail(email) as User | null;
+        if (user && user.password === password) {
+          // Limpiar carrito al iniciar sesión
+          await AsyncStorage.removeItem('cart');
+          await AsyncStorage.setItem('userEmail', email);
+          router.push('/(tabs)');
+        } else {
+          Alert.alert('Error', 'Usuario o contraseña incorrectos');
+        }
+      } catch (e) {
+        Alert.alert('Error', 'Ocurrió un error al iniciar sesión.');
+      } finally {
+        setIsSubmitting(false);
       }
     } else {
       // Lógica de registro
       try {
-        insertUser({ email, password, role: 'customer' });
+        await insertUser({ email, password, role: 'customer' });
+        // Limpiar carrito al crear cuenta nueva
+        await AsyncStorage.removeItem('cart');
         Alert.alert('Éxito', 'Cuenta creada, ahora puede iniciar sesión');
         setIsLogin(true);
       } catch (e: any) {
         Alert.alert('Error', e.message || 'No se pudo crear la cuenta. ¿Ya existe ese correo?');
+      } finally {
+        setIsSubmitting(false);
       }
     }
   };
@@ -54,7 +75,7 @@ export default function LoginScreen() {
         Alert.alert('Error', 'No se encontró el usuario actual.');
         return;
       }
-      const user = getUserByEmail(email);
+      const user = getUserByEmail(email) as User | null;
       if (!user) {
         Alert.alert('Error', 'No se encontró el usuario en la base de datos.');
         return;
@@ -146,9 +167,10 @@ export default function LoginScreen() {
           <TouchableOpacity
             style={styles.submitButton}
             onPress={handleSubmit}
+            disabled={isSubmitting}
           >
             <Text style={styles.submitButtonText}>
-              {isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
+              {isSubmitting ? (isLogin ? 'Ingresando...' : 'Registrando...') : (isLogin ? 'Iniciar Sesión' : 'Crear Cuenta')}
             </Text>
           </TouchableOpacity>
 
