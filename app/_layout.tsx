@@ -133,6 +133,18 @@ export default function RootLayout() {
               }),
             }}
           />
+          <Stack.Screen 
+            name="cart/payment-options"
+            options={{
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen 
+            name="cart/credit-card"
+            options={{
+              animation: 'slide_from_right',
+            }}
+          />
         </Stack>
       </View>
     </CartProvider>

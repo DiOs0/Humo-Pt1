@@ -81,17 +81,25 @@ export default function CartScreen() {
       Alert.alert('Error', 'Tu carrito está vacío');
       return;
     }
+
+    if (paymentMethod === 'card') {
+      router.push('/cart/payment-options' as any);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       // Obtener el userId real
       const email = await AsyncStorage.getItem('userEmail');
       let userId = '1';
       if (email) {
-        const user = require('@/utils/database').getUserByEmail(email);
+        const user = await require('@/utils/database').getUserByEmail(email);
         if (user && user.id) userId = user.id;
       }
+
       // LOGS DE DEPURACIÓN
       console.log('Checkout: userId', userId, 'items', items);
+      
       // Crear la orden y obtener el ID
       const deliveryAddress = 'Dirección de ejemplo';
       const customerName = 'Nombre de ejemplo';
@@ -102,16 +110,19 @@ export default function CartScreen() {
         customerName,
         customerPhone
       );
-      // No limpiar el carrito aquí, la base de datos lo hace tras crear la orden
-      // Programar actualización de estado a 'completed' en 15 segundos
+
       if (orderId) {
+        // Limpiar el carrito después de crear la orden exitosamente
+        await clearCart();
+        
         setTimeout(() => {
           updateOrderStatus(orderId, 'completed');
         }, 15000);
+
         // Emitir evento para refrescar pedidos
         DeviceEventEmitter.emit('refreshOrders');
+        router.push('/order/confirmation');
       }
-      router.push('/order/confirmation');
     } catch (error) {
       // Mostrar el error real
       let errorMsg = 'Ocurrió un error al procesar tu pedido.';

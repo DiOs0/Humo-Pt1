@@ -1,12 +1,20 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Dimensions, Animated, DeviceEventEmitter } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, CreditCard, Lock, Calendar, Hash } from 'lucide-react-native';
+import { ArrowLeft, CreditCard, Lock, Calendar, Hash, DollarSign, Check } from 'lucide-react-native';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useCart } from '@/contexts/CartContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createOrder, updateOrderStatus } from '@/utils/database';
+
+const { width } = Dimensions.get('window');
 
 export default function CreditCardScreen() {
   const router = useRouter();
   const { t } = useTranslation();
+  const { clearCart } = useCart();
+  const [activeTab, setActiveTab] = useState(0);
+  const slideAnim = useState(new Animated.Value(0))[0];
   
   const [formData, setFormData] = useState({
     cardNumber: '',
@@ -21,6 +29,20 @@ export default function CreditCardScreen() {
     expiryDate: '',
     cvv: '',
   });
+
+  const tabs = [
+    { id: 0, title: 'Datos de Tarjeta' },
+    { id: 1, title: 'Resumen de Pago' },
+  ];
+
+  const handleTabChange = (tabId: number) => {
+    Animated.timing(slideAnim, {
+      toValue: tabId,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+    setActiveTab(tabId);
+  };
 
   const formatCardNumber = (text: string) => {
     // Eliminar espacios y caracteres no numéricos
@@ -86,327 +108,390 @@ export default function CreditCardScreen() {
 
   const handleAccept = () => {
     if (validateForm()) {
+      handleTabChange(1);
+    }
+  };
+
+  const handleConfirmPayment = async () => {
+    try {
+      // Obtener el email del usuario
+      const email = await AsyncStorage.getItem('userEmail');
+      let userId = '1';
+      if (email) {
+        const user = await require('@/utils/database').getUserByEmail(email);
+        if (user && user.id) userId = user.id;
+      }
+
+      // Crear la orden
+      const deliveryAddress = 'Dirección de ejemplo';
+      const customerName = 'Nombre de ejemplo';
+      const customerPhone = '0999999999';
+      const orderId = await createOrder(
+        userId,
+        deliveryAddress,
+        customerName,
+        customerPhone
+      );
+
+      if (orderId) {
+        // Limpiar el carrito
+        await clearCart();
+        
+        // Simular procesamiento del pedido
+        setTimeout(() => {
+          updateOrderStatus(orderId, 'completed');
+        }, 15000);
+
+        // Emitir evento para refrescar pedidos
+        DeviceEventEmitter.emit('refreshOrders');
+        
+        // Redirigir a la confirmación
+        router.push('/order/confirmation' as any);
+      }
+    } catch (error) {
       Alert.alert(
-        'Tarjeta agregada',
-        'Los datos de la tarjeta han sido guardados correctamente.',
-        [
-          {
-            text: 'OK',
-            onPress: () => router.back()
-          }
-        ]
+        'Error',
+        'Ocurrió un error al procesar tu pago. Por favor, intenta nuevamente.'
       );
     }
   };
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
+  const renderTabs = () => (
+    <View style={styles.tabContainer}>
+      {tabs.map((tab) => (
+        <TouchableOpacity
+          key={tab.id}
+          style={[
+            styles.tab,
+            activeTab === tab.id && styles.activeTab
+          ]}
+          onPress={() => handleTabChange(tab.id)}
         >
-          <ArrowLeft size={24} color="#333" />
+          <Text style={[
+            styles.tabText,
+            activeTab === tab.id && styles.activeTabText
+          ]}>
+            {tab.title}
+          </Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Tarjeta de Crédito</Text>
-      </View>
+      ))}
+      <Animated.View
+        style={[
+          styles.tabIndicator,
+          {
+            transform: [{
+              translateX: slideAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, width / 2]
+              })
+            }]
+          }
+        ]}
+      />
+    </View>
+  );
 
-      <ScrollView style={styles.content}>
-        {/* Tarjeta Visual */}
-        <View style={styles.cardPreview}>
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <CreditCard size={24} color="#fff" />
-              <Text style={styles.cardType}>VISA</Text>
-            </View>
-            
-            <Text style={styles.cardNumber}>
-              {formData.cardNumber || '•••• •••• •••• ••••'}
-            </Text>
-            
-            <View style={styles.cardFooter}>
-              <View>
-                <Text style={styles.cardLabel}>TITULAR</Text>
-                <Text style={styles.cardName}>
-                  {formData.cardName || 'NOMBRE APELLIDO'}
-                </Text>
-              </View>
-              <View>
-                <Text style={styles.cardLabel}>EXPIRA</Text>
-                <Text style={styles.cardExpiry}>
-                  {formData.expiryDate || 'MM/YY'}
-                </Text>
-              </View>
-            </View>
+  const renderCardForm = () => (
+    <ScrollView style={styles.container}>
+      <View style={styles.cardContainer}>
+        <View style={styles.field}>
+          <Text style={styles.label}>Número de Tarjeta</Text>
+          <View style={styles.inputContainer}>
+            <CreditCard size={20} color="#666" />
+            <TextInput
+              style={styles.input}
+              placeholder="1234 5678 9012 3456"
+              value={formData.cardNumber}
+              onChangeText={(text) => setFormData({ ...formData, cardNumber: formatCardNumber(text) })}
+              keyboardType="numeric"
+              maxLength={19}
+            />
           </View>
+          {errors.cardNumber ? <Text style={styles.error}>{errors.cardNumber}</Text> : null}
         </View>
 
-        {/* Formulario */}
-        <View style={styles.form}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Número de Tarjeta</Text>
-            <View style={styles.inputContainer}>
-              <Hash size={20} color="#666" style={styles.inputIcon} />
-              <TextInput
-                style={[styles.input, errors.cardNumber ? styles.inputError : null]}
-                placeholder="1234 5678 9012 3456"
-                value={formData.cardNumber}
-                onChangeText={(text) => setFormData({
-                  ...formData,
-                  cardNumber: formatCardNumber(text)
-                })}
-                keyboardType="numeric"
-                maxLength={19}
-              />
-            </View>
-            {errors.cardNumber ? (
-              <Text style={styles.errorText}>{errors.cardNumber}</Text>
-            ) : null}
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Nombre del Titular</Text>
+        <View style={styles.field}>
+          <Text style={styles.label}>Nombre del Titular</Text>
+          <View style={styles.inputContainer}>
+            <Hash size={20} color="#666" />
             <TextInput
-              style={[styles.input, errors.cardName ? styles.inputError : null]}
-              placeholder="Como aparece en la tarjeta"
+              style={styles.input}
+              placeholder="NOMBRE COMO APARECE EN LA TARJETA"
               value={formData.cardName}
-              onChangeText={(text) => setFormData({
-                ...formData,
-                cardName: text.toUpperCase()
-              })}
+              onChangeText={(text) => setFormData({ ...formData, cardName: text.toUpperCase() })}
               autoCapitalize="characters"
             />
-            {errors.cardName ? (
-              <Text style={styles.errorText}>{errors.cardName}</Text>
-            ) : null}
+          </View>
+          {errors.cardName ? <Text style={styles.error}>{errors.cardName}</Text> : null}
+        </View>
+
+        <View style={styles.row}>
+          <View style={[styles.field, { flex: 1, marginRight: 10 }]}>
+            <Text style={styles.label}>Fecha de Expiración</Text>
+            <View style={styles.inputContainer}>
+              <Calendar size={20} color="#666" />
+              <TextInput
+                style={styles.input}
+                placeholder="MM/YY"
+                value={formData.expiryDate}
+                onChangeText={(text) => setFormData({ ...formData, expiryDate: formatExpiryDate(text) })}
+                keyboardType="numeric"
+                maxLength={5}
+              />
+            </View>
+            {errors.expiryDate ? <Text style={styles.error}>{errors.expiryDate}</Text> : null}
           </View>
 
-          <View style={styles.row}>
-            <View style={[styles.inputGroup, styles.halfWidth]}>
-              <Text style={styles.label}>Fecha de Expiración</Text>
-              <View style={styles.inputContainer}>
-                <Calendar size={20} color="#666" style={styles.inputIcon} />
-                <TextInput
-                  style={[styles.input, errors.expiryDate ? styles.inputError : null]}
-                  placeholder="MM/YY"
-                  value={formData.expiryDate}
-                  onChangeText={(text) => setFormData({
-                    ...formData,
-                    expiryDate: formatExpiryDate(text)
-                  })}
-                  keyboardType="numeric"
-                  maxLength={5}
-                />
-              </View>
-              {errors.expiryDate ? (
-                <Text style={styles.errorText}>{errors.expiryDate}</Text>
-              ) : null}
+          <View style={[styles.field, { flex: 1 }]}>
+            <Text style={styles.label}>CVV</Text>
+            <View style={styles.inputContainer}>
+              <Lock size={20} color="#666" />
+              <TextInput
+                style={styles.input}
+                placeholder="123"
+                value={formData.cvv}
+                onChangeText={(text) => setFormData({ ...formData, cvv: text })}
+                keyboardType="numeric"
+                maxLength={3}
+                secureTextEntry
+              />
             </View>
-
-            <View style={[styles.inputGroup, styles.halfWidth]}>
-              <Text style={styles.label}>CVV</Text>
-              <View style={styles.inputContainer}>
-                <Lock size={20} color="#666" style={styles.inputIcon} />
-                <TextInput
-                  style={[styles.input, errors.cvv ? styles.inputError : null]}
-                  placeholder="123"
-                  value={formData.cvv}
-                  onChangeText={(text) => setFormData({
-                    ...formData,
-                    cvv: text.replace(/\D/g, '').slice(0, 3)
-                  })}
-                  keyboardType="numeric"
-                  maxLength={3}
-                  secureTextEntry
-                />
-              </View>
-              {errors.cvv ? (
-                <Text style={styles.errorText}>{errors.cvv}</Text>
-              ) : null}
-            </View>
-          </View>
-
-          <View style={styles.securityNote}>
-            <Lock size={16} color="#666" />
-            <Text style={styles.securityText}>
-              Tus datos están protegidos con encriptación SSL
-            </Text>
+            {errors.cvv ? <Text style={styles.error}>{errors.cvv}</Text> : null}
           </View>
         </View>
-      </ScrollView>
 
-      <View style={styles.footer}>
-        <TouchableOpacity 
-          style={styles.acceptButton}
-          onPress={handleAccept}
-        >
-          <Text style={styles.acceptButtonText}>Aceptar</Text>
+        <TouchableOpacity style={styles.button} onPress={handleAccept}>
+          <Text style={styles.buttonText}>Continuar</Text>
         </TouchableOpacity>
       </View>
+    </ScrollView>
+  );
+
+  const renderPaymentSummary = () => (
+    <ScrollView style={styles.container}>
+      <View style={styles.summaryContainer}>
+        <View style={styles.summaryHeader}>
+          <DollarSign size={24} color="#4CAF50" />
+          <Text style={styles.summaryTitle}>Resumen de la Transacción</Text>
+        </View>
+
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Tarjeta</Text>
+            <Text style={styles.summaryValue}>•••• {formData.cardNumber.slice(-4)}</Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Titular</Text>
+            <Text style={styles.summaryValue}>{formData.cardName}</Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Total a Pagar</Text>
+            <Text style={styles.summaryValue}>$25.99</Text>
+          </View>
+        </View>
+
+        <View style={styles.securityNote}>
+          <Lock size={20} color="#666" />
+          <Text style={styles.securityText}>
+            Tu pago está protegido con encriptación de grado bancario
+          </Text>
+        </View>
+
+        <TouchableOpacity style={styles.confirmButton} onPress={handleConfirmPayment}>
+          <Check size={20} color="#FFF" />
+          <Text style={styles.confirmButtonText}>Confirmar Pago</Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
+  );
+
+  return (
+    <View style={styles.mainContainer}>
+      <View style={styles.header}>
+        <TouchableOpacity 
+          onPress={() => {
+            if (activeTab === 1) {
+              handleTabChange(0);
+            } else {
+              router.push('/cart/payment-options' as any);
+            }
+          }} 
+          style={styles.backButton}
+        >
+          <ArrowLeft size={24} color="#000" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Pago con Tarjeta</Text>
+      </View>
+      {renderTabs()}
+      {activeTab === 0 ? renderCardForm() : renderPaymentSummary()}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f5f5f5',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
+    padding: 16,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: '#eee',
   },
   backButton: {
-    marginRight: 15,
+    padding: 8,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  cardPreview: {
-    alignItems: 'center',
-    paddingVertical: 30,
-  },
-  card: {
-    width: 300,
-    height: 180,
-    backgroundColor: '#667eea',
-    borderRadius: 15,
-    padding: 20,
-    justifyContent: 'space-between',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    elevation: 8,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  cardType: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  cardNumber: {
-    color: '#fff',
     fontSize: 18,
-    fontWeight: 'bold',
-    letterSpacing: 2,
-    textAlign: 'center',
-    marginVertical: 20,
+    fontWeight: '600',
+    marginLeft: 16,
   },
-  cardFooter: {
+  tabContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    backgroundColor: '#fff',
+    position: 'relative',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
   },
-  cardLabel: {
-    color: '#fff',
-    fontSize: 10,
-    opacity: 0.8,
-    marginBottom: 2,
+  tab: {
+    flex: 1,
+    paddingVertical: 16,
+    alignItems: 'center',
   },
-  cardName: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
+  activeTab: {
+    backgroundColor: '#fff',
   },
-  cardExpiry: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
+  tabText: {
+    fontSize: 14,
+    color: '#666',
   },
-  form: {
-    paddingBottom: 20,
+  activeTabText: {
+    color: '#4CAF50',
+    fontWeight: '600',
   },
-  inputGroup: {
-    marginBottom: 20,
+  tabIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    width: width / 2,
+    height: 2,
+    backgroundColor: '#4CAF50',
+  },
+  container: {
+    flex: 1,
+  },
+  cardContainer: {
+    padding: 16,
+  },
+  field: {
+    marginBottom: 16,
   },
   label: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 14,
     color: '#333',
     marginBottom: 8,
+    fontWeight: '500',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: '#ddd',
-    borderRadius: 10,
-    backgroundColor: '#f9f9f9',
-  },
-  inputIcon: {
-    marginLeft: 15,
-    marginRight: 10,
   },
   input: {
     flex: 1,
-    height: 50,
-    paddingHorizontal: 15,
+    paddingVertical: 12,
+    marginLeft: 8,
     fontSize: 16,
-    color: '#333',
-  },
-  inputError: {
-    borderColor: '#ff4444',
-  },
-  errorText: {
-    color: '#ff4444',
-    fontSize: 12,
-    marginTop: 5,
-    marginLeft: 5,
   },
   row: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    marginBottom: 16,
   },
-  halfWidth: {
-    width: '48%',
+  error: {
+    color: '#f44336',
+    fontSize: 12,
+    marginTop: 4,
+  },
+  button: {
+    backgroundColor: '#4CAF50',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  summaryContainer: {
+    padding: 16,
+  },
+  summaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  summaryTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginLeft: 12,
+  },
+  summaryCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    elevation: 2,
+  },
+  summaryItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  summaryLabel: {
+    fontSize: 16,
+    color: '#666',
+  },
+  summaryValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
   },
   securityNote: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 20,
-    padding: 15,
-    backgroundColor: '#f0f8ff',
-    borderRadius: 10,
+    backgroundColor: '#f8f9fa',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 24,
   },
   securityText: {
-    marginLeft: 8,
-    fontSize: 14,
+    marginLeft: 12,
     color: '#666',
+    flex: 1,
   },
-  footer: {
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-  },
-  acceptButton: {
-    backgroundColor: '#E85D04',
-    borderRadius: 10,
-    paddingVertical: 15,
+  confirmButton: {
+    backgroundColor: '#4CAF50',
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
+    padding: 16,
+    borderRadius: 8,
+    marginTop: 8,
   },
-  acceptButtonText: {
+  confirmButtonText: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
 });
