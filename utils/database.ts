@@ -7,68 +7,126 @@ const db = SQLite.openDatabaseSync('mydatabase.db');
 
 // --- MIGRACIÓN: Agregar campo name si no existe ---
 const migrateAddNameField = () => {
-  const userTableInfo = db.getAllSync("PRAGMA table_info(users)");
-  const hasName = userTableInfo.some((col: any) => col.name === 'name');
-  if (!hasName) {
-    db.runSync('ALTER TABLE users ADD COLUMN name TEXT');
+  try {
+    // Primero verificar si la tabla users existe
+    const tables = db.getAllSync("SELECT name FROM sqlite_master WHERE type='table' AND name='users'");
+    if (tables.length === 0) {
+      console.log('Tabla users no existe, se creará más adelante');
+      return;
+    }
+    
+    const userTableInfo = db.getAllSync("PRAGMA table_info(users)");
+    const hasName = userTableInfo.some((col: any) => col.name === 'name');
+    if (!hasName) {
+      console.log('Agregando campo name a tabla users');
+      db.runSync('ALTER TABLE users ADD COLUMN name TEXT');
+    }
+  } catch (error) {
+    console.log('Error en migración de campo name:', error);
   }
 };
 
 // MIGRACIÓN: Cambia todas las tablas antiguas a usar IDs TEXT (UUID/string)
 export const migrateCartAndOrdersToText = () => {
-  // Cart
-  db.runSync('CREATE TABLE IF NOT EXISTS Cart_new (id TEXT PRIMARY KEY NOT NULL, user_id TEXT, restaurant_id TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)');
-  db.runSync('INSERT INTO Cart_new (id, user_id, restaurant_id, created_at) SELECT CAST(id AS TEXT), CAST(user_id AS TEXT), CAST(restaurant_id AS TEXT), created_at FROM Cart');
-  db.runSync('DROP TABLE IF EXISTS Cart');
-  db.runSync('ALTER TABLE Cart_new RENAME TO Cart');
+  try {
+    // Verificar si las tablas antiguas existen antes de migrar
+    const tables = db.getAllSync("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('Cart', 'CartItems', 'Orders', 'OrderItems', 'Products')");
+    const existingTables = tables.map((t: any) => t.name);
+    
+    if (existingTables.length === 0) {
+      console.log('No hay tablas antiguas que migrar');
+      return;
+    }
+    
+    console.log('Migrando tablas:', existingTables);
+    
+    // Cart
+    if (existingTables.includes('Cart')) {
+      db.runSync('CREATE TABLE IF NOT EXISTS Cart_new (id TEXT PRIMARY KEY NOT NULL, user_id TEXT, restaurant_id TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)');
+      db.runSync('INSERT INTO Cart_new (id, user_id, restaurant_id, created_at) SELECT CAST(id AS TEXT), CAST(user_id AS TEXT), CAST(restaurant_id AS TEXT), created_at FROM Cart');
+      db.runSync('DROP TABLE IF EXISTS Cart');
+      db.runSync('ALTER TABLE Cart_new RENAME TO Cart');
+    }
 
-  // CartItems
-  db.runSync('CREATE TABLE IF NOT EXISTS CartItems_new (id TEXT PRIMARY KEY NOT NULL, cart_id TEXT, product_id TEXT, quantity INTEGER, price DECIMAL(10,2), notes TEXT)');
-  db.runSync('INSERT INTO CartItems_new (id, cart_id, product_id, quantity, price, notes) SELECT CAST(id AS TEXT), CAST(cart_id AS TEXT), CAST(product_id AS TEXT), quantity, price, notes FROM CartItems');
-  db.runSync('DROP TABLE IF EXISTS CartItems');
-  db.runSync('ALTER TABLE CartItems_new RENAME TO CartItems');
+    // CartItems
+    if (existingTables.includes('CartItems')) {
+      db.runSync('CREATE TABLE IF NOT EXISTS CartItems_new (id TEXT PRIMARY KEY NOT NULL, cart_id TEXT, product_id TEXT, quantity INTEGER, price DECIMAL(10,2), notes TEXT)');
+      db.runSync('INSERT INTO CartItems_new (id, cart_id, product_id, quantity, price, notes) SELECT CAST(id AS TEXT), CAST(cart_id AS TEXT), CAST(product_id AS TEXT), quantity, price, notes FROM CartItems');
+      db.runSync('DROP TABLE IF EXISTS CartItems');
+      db.runSync('ALTER TABLE CartItems_new RENAME TO CartItems');
+    }
 
-  // Orders
-  db.runSync('CREATE TABLE IF NOT EXISTS Orders_new (id TEXT PRIMARY KEY NOT NULL, user_id TEXT, restaurant_id TEXT, status TEXT, total_amount DECIMAL(10,2), delivery_fee DECIMAL(10,2), service_fee DECIMAL(10,2), created_at DATETIME DEFAULT CURRENT_TIMESTAMP, delivery_address TEXT, customer_name TEXT, customer_phone TEXT)');
-  db.runSync('INSERT INTO Orders_new (id, user_id, restaurant_id, status, total_amount, delivery_fee, service_fee, created_at, delivery_address, customer_name, customer_phone) SELECT CAST(id AS TEXT), CAST(user_id AS TEXT), CAST(restaurant_id AS TEXT), status, total_amount, delivery_fee, service_fee, created_at, delivery_address, customer_name, customer_phone FROM Orders');
-  db.runSync('DROP TABLE IF EXISTS Orders');
-  db.runSync('ALTER TABLE Orders_new RENAME TO Orders');
+    // Orders
+    if (existingTables.includes('Orders')) {
+      db.runSync('CREATE TABLE IF NOT EXISTS Orders_new (id TEXT PRIMARY KEY NOT NULL, user_id TEXT, restaurant_id TEXT, status TEXT, total_amount DECIMAL(10,2), delivery_fee DECIMAL(10,2), service_fee DECIMAL(10,2), created_at DATETIME DEFAULT CURRENT_TIMESTAMP, delivery_address TEXT, customer_name TEXT, customer_phone TEXT)');
+      db.runSync('INSERT INTO Orders_new (id, user_id, restaurant_id, status, total_amount, delivery_fee, service_fee, created_at, delivery_address, customer_name, customer_phone) SELECT CAST(id AS TEXT), CAST(user_id AS TEXT), CAST(restaurant_id AS TEXT), status, total_amount, delivery_fee, service_fee, created_at, delivery_address, customer_name, customer_phone FROM Orders');
+      db.runSync('DROP TABLE IF EXISTS Orders');
+      db.runSync('ALTER TABLE Orders_new RENAME TO Orders');
+    }
 
-  // OrderItems
-  db.runSync('CREATE TABLE IF NOT EXISTS OrderItems_new (id TEXT PRIMARY KEY NOT NULL, order_id TEXT, product_id TEXT, quantity INTEGER, price DECIMAL(10,2), notes TEXT)');
-  db.runSync('INSERT INTO OrderItems_new (id, order_id, product_id, quantity, price, notes) SELECT CAST(id AS TEXT), CAST(order_id AS TEXT), CAST(product_id AS TEXT), quantity, price, notes FROM OrderItems');
-  db.runSync('DROP TABLE IF EXISTS OrderItems');
-  db.runSync('ALTER TABLE OrderItems_new RENAME TO OrderItems');
+    // OrderItems
+    if (existingTables.includes('OrderItems')) {
+      db.runSync('CREATE TABLE IF NOT EXISTS OrderItems_new (id TEXT PRIMARY KEY NOT NULL, order_id TEXT, product_id TEXT, quantity INTEGER, price DECIMAL(10,2), notes TEXT)');
+      db.runSync('INSERT INTO OrderItems_new (id, order_id, product_id, quantity, price, notes) SELECT CAST(id AS TEXT), CAST(order_id AS TEXT), CAST(product_id AS TEXT), quantity, price, notes FROM OrderItems');
+      db.runSync('DROP TABLE IF EXISTS OrderItems');
+      db.runSync('ALTER TABLE OrderItems_new RENAME TO OrderItems');
+    }
 
-  // Products
-  db.runSync('CREATE TABLE IF NOT EXISTS Products_new (id TEXT PRIMARY KEY NOT NULL, restaurant_id TEXT, name TEXT, description TEXT, price DECIMAL(10,2), image_url TEXT, category TEXT, available BOOLEAN DEFAULT 1)');
-  db.runSync('INSERT INTO Products_new (id, restaurant_id, name, description, price, image_url, category, available) SELECT CAST(id AS TEXT), CAST(restaurant_id AS TEXT), name, description, price, image_url, category, available FROM Products');
-  db.runSync('DROP TABLE IF EXISTS Products');
-  db.runSync('ALTER TABLE Products_new RENAME TO Products');
+    // Products
+    if (existingTables.includes('Products')) {
+      db.runSync('CREATE TABLE IF NOT EXISTS Products_new (id TEXT PRIMARY KEY NOT NULL, restaurant_id TEXT, name TEXT, description TEXT, price DECIMAL(10,2), image_url TEXT, category TEXT, available BOOLEAN DEFAULT 1)');
+      db.runSync('INSERT INTO Products_new (id, restaurant_id, name, description, price, image_url, category, available) SELECT CAST(id AS TEXT), CAST(restaurant_id AS TEXT), name, description, price, image_url, category, available FROM Products');
+      db.runSync('DROP TABLE IF EXISTS Products');
+      db.runSync('ALTER TABLE Products_new RENAME TO Products');
+    }
+  } catch (error) {
+    console.log('Error en migración de tablas:', error);
+  }
 };
 
 // MIGRACIÓN: Añadir campo order_number incremental si no existe
 const migrateAddOrderNumber = () => {
-  const orderTableInfo = db.getAllSync("PRAGMA table_info(Orders)");
-  const hasOrderNumber = orderTableInfo.some((col: any) => col.name === 'order_number');
-  if (!hasOrderNumber) {
-    db.runSync('ALTER TABLE Orders ADD COLUMN order_number INTEGER');
-    // Asignar números incrementales a pedidos existentes
-    const orders = db.getAllSync('SELECT id FROM Orders ORDER BY created_at ASC');
-    orders.forEach((order: any, idx: number) => {
-      db.runSync('UPDATE Orders SET order_number = ? WHERE id = ?', [idx + 1, order.id]);
-    });
+  try {
+    // Verificar si la tabla Orders existe
+    const tables = db.getAllSync("SELECT name FROM sqlite_master WHERE type='table' AND name='Orders'");
+    if (tables.length === 0) {
+      console.log('Tabla Orders no existe, se creará más adelante');
+      return;
+    }
+    
+    const orderTableInfo = db.getAllSync("PRAGMA table_info(Orders)");
+    const hasOrderNumber = orderTableInfo.some((col: any) => col.name === 'order_number');
+    if (!hasOrderNumber) {
+      console.log('Agregando campo order_number a tabla Orders');
+      db.runSync('ALTER TABLE Orders ADD COLUMN order_number INTEGER');
+      // Asignar números incrementales a pedidos existentes
+      const orders = db.getAllSync('SELECT id FROM Orders ORDER BY created_at ASC');
+      orders.forEach((order: any, idx: number) => {
+        db.runSync('UPDATE Orders SET order_number = ? WHERE id = ?', [idx + 1, order.id]);
+      });
+    }
+  } catch (error) {
+    console.log('Error en migración de order_number:', error);
   }
 };
 
 // Inicializar tablas
 let dbInitialized = false;
 export const initDatabase = () => {
-  if (dbInitialized) return;
+  if (dbInitialized) {
+    console.log('Base de datos ya inicializada');
+    return;
+  }
+  
+  console.log('Iniciando configuración de la base de datos...');
+  
   try {
+    console.log('Ejecutando migraciones...');
     migrateAddNameField();
     migrateCartAndOrdersToText();
     migrateAddOrderNumber();
+    
+    console.log('Creando tablas...');
     db.execSync(`
       -- ESTRUCTURA EASYFOOD RELACIONAL
       CREATE TABLE IF NOT EXISTS users (
@@ -138,28 +196,97 @@ export const initDatabase = () => {
         FOREIGN KEY(customer_id) REFERENCES customers(id),
         FOREIGN KEY(restaurant_id) REFERENCES restaurants(id)
       );
+
+      -- Tabla de productos
+      CREATE TABLE IF NOT EXISTS Products (
+        id TEXT PRIMARY KEY NOT NULL,
+        restaurant_id TEXT,
+        name TEXT,
+        description TEXT,
+        price DECIMAL(10,2),
+        image_url TEXT,
+        category TEXT,
+        available BOOLEAN DEFAULT 1
+      );
+
+      -- Tablas para órdenes
+      CREATE TABLE IF NOT EXISTS Orders (
+        id TEXT PRIMARY KEY NOT NULL,
+        user_id TEXT,
+        restaurant_id TEXT,
+        status TEXT,
+        total_amount DECIMAL(10,2),
+        delivery_fee DECIMAL(10,2),
+        service_fee DECIMAL(10,2),
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        delivery_address TEXT,
+        customer_name TEXT,
+        customer_phone TEXT,
+        order_number INTEGER
+      );
+
+      CREATE TABLE IF NOT EXISTS OrderItems (
+        id TEXT PRIMARY KEY NOT NULL,
+        order_id TEXT,
+        product_id TEXT,
+        quantity INTEGER,
+        price DECIMAL(10,2),
+        notes TEXT,
+        FOREIGN KEY(order_id) REFERENCES Orders(id),
+        FOREIGN KEY(product_id) REFERENCES Products(id)
+      );
+
+      -- Tablas para el carrito
+      CREATE TABLE IF NOT EXISTS Cart (
+        id TEXT PRIMARY KEY NOT NULL,
+        user_id TEXT,
+        restaurant_id TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS CartItems (
+        id TEXT PRIMARY KEY NOT NULL,
+        cart_id TEXT,
+        product_id TEXT,
+        quantity INTEGER,
+        price DECIMAL(10,2),
+        notes TEXT,
+        FOREIGN KEY(product_id) REFERENCES Products(id),
+        FOREIGN KEY(cart_id) REFERENCES Cart(id)
+      );
     `);
+    
+    console.log('Tablas creadas exitosamente');
     dbInitialized = true;
+    
     // Insertar productos de ejemplo
+    console.log('Insertando productos de ejemplo...');
     insertSampleProducts();
+    console.log('Base de datos inicializada completamente');
   } catch (error) {
     console.error('Error initializing database:', error);
+    throw error; // Re-lanzar el error para que se pueda manejar en el nivel superior
   }
 };
 
 // Función para insertar productos de ejemplo de los datos mock
 const insertSampleProducts = () => {
   try {
+    console.log('insertSampleProducts - Iniciando inserción de productos');
+    
     // Verificar si ya hay productos en la tabla
     const productsCount = db.getFirstSync('SELECT COUNT(*) as count FROM Products', []);
+    console.log('insertSampleProducts - Productos existentes:', productsCount);
     
     if (productsCount && (productsCount as any)['count'] > 0) {
-      // Ya hay productos, no necesitamos insertar más
+      console.log('insertSampleProducts - Ya hay productos, no se insertarán más');
       return;
     }
     
+    console.log('insertSampleProducts - Insertando productos desde mockRestaurants');
     // Insertar todos los productos de los restaurantes mock
     mockRestaurants.forEach(restaurant => {
+      console.log(`insertSampleProducts - Procesando restaurante ${restaurant.id}`);
       restaurant.menu.forEach(item => {
         // Convertir la imagen a una URL string para almacenar en la base de datos
         let imageUrl = '';
@@ -170,6 +297,7 @@ const insertSampleProducts = () => {
           // En un caso real, necesitaríamos manejar esto de otra manera
           imageUrl = `${restaurant.id}-${item.id}`;
         }
+        console.log(`insertSampleProducts - Insertando producto ${item.id} (${item.name})`);
         
         try {
           db.runSync(
@@ -198,7 +326,7 @@ const insertSampleProducts = () => {
 };
 
 // Función para agregar un producto al carrito
-export const addToCart = (
+export const addToCart = async (
   userId: string,
   restaurantId: string,
   productId: string,
@@ -207,45 +335,99 @@ export const addToCart = (
   notes: string = ''
 ) => {
   try {
-    // Buscar carrito existente SOLO para este usuario y restaurante
+    await initDatabase(); // Asegurar que la base de datos esté inicializada
+    
+    // Verificar que el usuario existe
+    if (!userId) {
+      throw new Error('Usuario no autenticado');
+    }
+
+    const user = db.getFirstSync('SELECT * FROM users WHERE id = ?', [userId]);
+    if (!user) {
+      throw new Error('Usuario no encontrado');
+    }
+    
+    console.log('addToCart - Parámetros:', { userId, restaurantId, productId, quantity, price, notes });
+    
+    // Primero buscar cualquier carrito activo (con items) del usuario
     let cartResult: any = db.getFirstSync(
-      'SELECT * FROM Cart WHERE user_id = ? AND restaurant_id = ? ORDER BY created_at DESC LIMIT 1',
-      [userId, restaurantId]
+      `SELECT c.* 
+       FROM Cart c 
+       JOIN CartItems ci ON c.id = ci.cart_id 
+       WHERE c.user_id = ? 
+       GROUP BY c.id 
+       ORDER BY c.created_at DESC 
+       LIMIT 1`,
+      [userId]
     );
+
+    // Si encontramos un carrito con items pero es de otro restaurante, lo limpiamos
+    if (cartResult && cartResult.restaurant_id !== restaurantId) {
+      console.log('addToCart - Limpiando carrito anterior de otro restaurante');
+      await clearUserCart(userId);
+      cartResult = null;
+    }
+
+    // Si no hay carrito activo o fue limpiado, buscar el último carrito del usuario para este restaurante
+    if (!cartResult) {
+      cartResult = db.getFirstSync(
+        'SELECT * FROM Cart WHERE user_id = ? AND restaurant_id = ? ORDER BY created_at DESC LIMIT 1',
+        [userId, restaurantId]
+      );
+    }
+    
+    console.log('addToCart - Carrito encontrado:', cartResult);
+    
     let cartId = cartResult?.id;
+    
     // Si no hay carrito, crear uno nuevo con UUID
     if (!cartId) {
       cartId = uuid.v4();
+      console.log('addToCart - Creando nuevo carrito con ID:', cartId);
       db.runSync(
         'INSERT INTO Cart (id, user_id, restaurant_id) VALUES (?, ?, ?)',
         [cartId, userId, restaurantId]
       );
     }
+    
     // Validación extra: si aún no hay cartId, lanzar error explícito
     if (!cartId) {
       throw new Error('No se pudo crear el carrito para el usuario');
     }
+    
     // Verificar si el producto ya está en el carrito
     const item: any = db.getFirstSync(
       'SELECT * FROM CartItems WHERE cart_id = ? AND product_id = ?',
       [cartId, productId]
     );
+    
+    console.log('addToCart - Item existente:', item);
+    
     if (item) {
       const newQuantity = item.quantity + quantity;
+      console.log('addToCart - Nueva cantidad:', newQuantity);
+      
       if (newQuantity <= 0) {
+        console.log('addToCart - Eliminando item del carrito');
         db.runSync('DELETE FROM CartItems WHERE id = ?', [item.id]);
       } else {
+        console.log('addToCart - Actualizando cantidad del item');
         db.runSync('UPDATE CartItems SET quantity = ? WHERE id = ?', [newQuantity, item.id]);
       }
     } else if (quantity > 0) {
       const cartItemId = uuid.v4();
+      console.log('addToCart - Creando nuevo item con ID:', cartItemId);
       db.runSync(
         'INSERT INTO CartItems (id, cart_id, product_id, quantity, price, notes) VALUES (?, ?, ?, ?, ?, ?)',
         [cartItemId, cartId, productId, quantity, price, notes]
       );
     }
+    
+    console.log('addToCart - Operación completada exitosamente');
+    return true;
   } catch (error) {
-    console.error('Error adding to cart:', error);
+    console.error('addToCart - Error:', error);
+    throw error; // Re-lanzar el error para que sea manejado por el contexto
   }
 };
 
@@ -253,11 +435,52 @@ export const addToCart = (
 export const getCartItems = async (userId: string) => {
   try {
     await initDatabase(); // Asegura inicialización
+    console.log('getCartItems - Buscando carrito para usuario:', userId);
+    
+    // Buscar el carrito más reciente para el usuario que tenga items
     const cart: any = db.getFirstSync(
-      'SELECT * FROM Cart WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
+      `SELECT c.* 
+       FROM Cart c 
+       LEFT JOIN CartItems ci ON c.id = ci.cart_id 
+       WHERE c.user_id = ? 
+       GROUP BY c.id 
+       HAVING COUNT(ci.id) > 0 
+       ORDER BY c.created_at DESC 
+       LIMIT 1`,
       [userId]
     );
-    if (!cart) return []; // Si no hay carrito, retorna array vacío para que la UI muestre estado vacío
+
+    // Si no se encuentra un carrito con items, buscar cualquier carrito del usuario
+    if (!cart) {
+      const anyCart: any = db.getFirstSync(
+        'SELECT * FROM Cart WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
+        [userId]
+      );
+      if (anyCart) {
+        console.log('getCartItems - Encontrado carrito sin items:', anyCart);
+        return []; // Retornar array vacío si el carrito existe pero no tiene items
+      }
+    }
+
+    console.log('getCartItems - Carrito encontrado:', cart);
+    
+    if (!cart) {
+      console.log('getCartItems - No se encontró carrito');
+      return []; // Si no hay carrito, retorna array vacío para que la UI muestre estado vacío
+    }
+
+    // Primero verificamos que existen las tablas necesarias
+    const tables = db.getAllSync("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('CartItems', 'Products')");
+    console.log('getCartItems - Tablas existentes:', tables);
+
+    // Verificamos los items en CartItems
+    const cartItems = db.getAllSync('SELECT * FROM CartItems WHERE cart_id = ?', [cart.id]);
+    console.log('getCartItems - Items en CartItems:', cartItems);
+
+    // Verificamos los productos en Products
+    const products = db.getAllSync('SELECT * FROM Products WHERE id IN (SELECT product_id FROM CartItems WHERE cart_id = ?)', [cart.id]);
+    console.log('getCartItems - Productos encontrados:', products);
+
     const items = db.getAllSync(
       `SELECT 
           ci.id AS id,
@@ -270,12 +493,14 @@ export const getCartItems = async (userId: string) => {
           p.image_url,
           p.restaurant_id
        FROM CartItems ci
-       JOIN Products p ON ci.product_id = p.id
+       LEFT JOIN Products p ON ci.product_id = p.id
        WHERE ci.cart_id = ?`,
       [cart.id]
     );
+    console.log('getCartItems - Items finales:', items);
+
     // Normaliza la imagen: si es ruta local, la UI debe usar require, si es URL, usar string
-    return items.map((item: any) => {
+    const mappedItems = items.map((item: any) => {
       let imageType = 'unknown';
       if (typeof item.image_url === 'string') {
         if (item.image_url.startsWith('http')) {
@@ -291,6 +516,9 @@ export const getCartItems = async (userId: string) => {
         imageType,
       };
     });
+    
+    console.log('getCartItems - Items mapeados finales:', mappedItems);
+    return mappedItems;
   } catch (error) {
     console.error('Error getting cart items:', error);
     return []; // Siempre retorna array vacío en error para que la UI no crashee
@@ -298,13 +526,19 @@ export const getCartItems = async (userId: string) => {
 };
 
 // Eliminar item del carrito
-export const removeFromCart = (cartItemId: string) => {
+export const removeFromCart = async (cartItemId: string) => {
   try {
-    db.runSync('DELETE FROM CartItems WHERE id = ?', [cartItemId]);
+    await initDatabase(); // Asegurar que la base de datos esté inicializada
+    
+    console.log('removeFromCart - Eliminando item:', cartItemId);
+    
+    const result = db.runSync('DELETE FROM CartItems WHERE id = ?', [cartItemId]);
+    
+    console.log('removeFromCart - Resultado:', result);
     return true;
   } catch (error) {
-    console.log('Error al eliminar del carrito:', error);
-    return true;
+    console.error('removeFromCart - Error:', error);
+    throw error; // Re-lanzar el error para manejo apropiado
   }
 };
 
