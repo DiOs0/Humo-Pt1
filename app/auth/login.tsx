@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, KeyboardAvo
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react-native';
 import GoogleIcon from '@/components/auth/GoogleIcon';
-import { insertUser, getUserByEmail, deleteUserAndData } from '@/utils/database';
+import { registerUser, loginUser, getUserByEmail, deleteUserAndData } from '@/utils/database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Definir tipo para el usuario
@@ -32,24 +32,20 @@ export default function LoginScreen() {
     if (isLogin) {
       // Lógica de login
       try {
-        const user = getUserByEmail(email) as User | null;
-        if (user && user.password === password) {
-          // Limpiar carrito al iniciar sesión
-          await AsyncStorage.removeItem('cart');
-          await AsyncStorage.setItem('userEmail', email);
-          router.push('/(tabs)');
-        } else {
-          Alert.alert('Error', 'Usuario o contraseña incorrectos');
-        }
-      } catch (e) {
-        Alert.alert('Error', 'Ocurrió un error al iniciar sesión.');
+        const user = await loginUser(email, password);
+        // Limpiar carrito al iniciar sesión
+        await AsyncStorage.removeItem('cart');
+        await AsyncStorage.setItem('userEmail', email);
+        router.push('/(tabs)');
+      } catch (e: any) {
+        Alert.alert('Error', e.message || 'Ocurrió un error al iniciar sesión.');
       } finally {
         setIsSubmitting(false);
       }
     } else {
       // Lógica de registro
       try {
-        await insertUser({ email, password, role: 'customer' });
+        await registerUser({ email, password, role: 'customer' });
         // Limpiar carrito al crear cuenta nueva
         await AsyncStorage.removeItem('cart');
         Alert.alert('Éxito', 'Cuenta creada, ahora puede iniciar sesión');

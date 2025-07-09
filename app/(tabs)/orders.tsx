@@ -11,7 +11,7 @@ import { DeviceEventEmitter } from 'react-native';
 type OrderStatus = 'preparing' | 'ready' | 'delivering' | 'completed' | 'cancelled';
 
 interface OrderItem {
-  id: number;
+  id: string;
   name: string;
   price: number;
   quantity: number;
@@ -19,8 +19,8 @@ interface OrderItem {
 }
 
 interface Order {
-  id: number;
-  restaurantId: number;
+  id: string;
+  restaurantId: string;
   restaurantName: string;
   restaurantImage: string;
   status: OrderStatus;
@@ -88,10 +88,20 @@ function OrderItem({ order, onPress }: OrderItemProps) {
   const formattedDate = new Date(order.date).toLocaleDateString();
   const formattedTime = new Date(order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+  // Manejo seguro de imagen: si es string, usar uri; si es número (require), usar directamente
+  let imageSource: any = null;
+  if (typeof order.restaurantImage === 'string') {
+    imageSource = { uri: order.restaurantImage };
+  } else if (typeof order.restaurantImage === 'number') {
+    imageSource = order.restaurantImage;
+  } else {
+    imageSource = undefined;
+  }
+
   return (
     <TouchableOpacity style={styles.orderItem} onPress={onPress}>
       <View style={styles.orderHeader}>
-        <Image source={{ uri: order.restaurantImage }} style={styles.restaurantImage} />
+        <Image source={imageSource} style={styles.restaurantImage} />
         <View style={styles.orderInfo}>
           <Text style={styles.restaurantName}>{order.restaurantName}</Text>
           <Text style={styles.orderDate}>

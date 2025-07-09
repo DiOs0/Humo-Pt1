@@ -5,6 +5,7 @@ import { ArrowLeft, Phone, MessageCircle, Clock, Check, MapPin } from 'lucide-re
 import { useTranslation } from '@/hooks/useTranslation';
 import { mockOrders } from '@/data/mockData';
 import { useCart } from '@/contexts/CartContext';
+import { initDatabase } from '@/utils/database';
 
 // Función auxiliar para validar el estado del pedido
 function isValidOrderStatus(status: string): status is OrderStatus {
@@ -139,29 +140,69 @@ export default function OrderTrackingScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { addItem, items } = useCart();
-  
-  // In a real app, we would fetch the order details from an API
+
   const [order, setOrder] = useState<Order | null>(null);
+  const [restaurant, setRestaurant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  
-  // Simulate order status changes for demo purposes
   const [currentStatus, setCurrentStatus] = useState<OrderStatus>('preparing');
-  
+  const [error, setError] = useState<string | null>(null);
+
+  // Obtener restaurante real y su imagen robustamente
   useEffect(() => {
-    // Simulate fetching order details
-    const fetchedOrder = mockOrders.find(o => o.id.toString() === id);
-    
-    if (fetchedOrder && isValidOrderStatus(fetchedOrder.status)) {
-      setOrder({
-        ...fetchedOrder,
-        status: fetchedOrder.status as OrderStatus
-      });
-      setCurrentStatus(fetchedOrder.status as OrderStatus);
-    }
-    
-    setLoading(false);
-    
-    // Simulate status updates for demo purposes
+    let fetchedOrder: any = null;
+    let foundRestaurant: any = null;
+    setError(null);
+    setLoading(true);
+    (async () => {
+      try {
+        await initDatabase();
+        const dbOrder = require('@/utils/database').getOrderDetails(id?.toString());
+        if (dbOrder && dbOrder.id) {
+          // Buscar restaurante real por ID (string) y usar imagen robusta
+          foundRestaurant = require('@/data/mockData').mockRestaurants.find((r: any) => r.id.toString() === dbOrder.restaurant_id?.toString());
+          fetchedOrder = {
+            id: dbOrder.id,
+            orderNumber: dbOrder.order_number,
+            restaurantId: dbOrder.restaurant_id,
+            restaurantName: foundRestaurant?.name || 'Restaurante',
+            restaurantImage: foundRestaurant?.image || '',
+            status: dbOrder.status,
+            date: dbOrder.created_at,
+            total: dbOrder.total_amount,
+            customerName: dbOrder.customer_name,
+            items: dbOrder.items || [],
+          };
+        }
+      } catch (e: any) {
+        console.error('Error al obtener detalles del pedido:', e);
+        setError('Ocurrió un error al cargar el pedido. Intenta nuevamente.');
+      }
+      if (!fetchedOrder && !error) {
+        try {
+          const mockOrder = require('@/data/mockData').mockOrders.find((o: any) => o.id.toString() === id);
+          if (mockOrder && isValidOrderStatus(mockOrder.status)) {
+            foundRestaurant = require('@/data/mockData').mockRestaurants.find((r: any) => r.id.toString() === mockOrder.restaurantId?.toString());
+            fetchedOrder = {
+              ...mockOrder,
+              orderNumber: mockOrder.orderNumber || mockOrder.id,
+              restaurantName: foundRestaurant?.name || mockOrder.restaurantName,
+              restaurantImage: foundRestaurant?.image || mockOrder.image || '',
+              status: mockOrder.status as OrderStatus
+            };
+          }
+        } catch (e: any) {
+          console.error('Error al obtener pedido mock:', e);
+          setError('Ocurrió un error al cargar el pedido de prueba.');
+        }
+      }
+      if (fetchedOrder && isValidOrderStatus(fetchedOrder.status)) {
+        setOrder(fetchedOrder);
+        setRestaurant(foundRestaurant);
+        setCurrentStatus(fetchedOrder.status as OrderStatus);
+      }
+      setLoading(false);
+    })();
+    // Simular status updates (solo para mock/demo)
     const interval = setInterval(() => {
       setCurrentStatus(prev => {
         const currentIndex = ORDER_STATUSES.indexOf(prev);
@@ -170,11 +211,10 @@ export default function OrderTrackingScreen() {
         }
         return prev;
       });
-    }, 20000); // Change status every 20 seconds
-    
+    }, 20000);
     return () => clearInterval(interval);
   }, [id]);
-  
+
   const handleAddItem = (item: MenuItem) => {
     addItem(item, 1); // Esto sí inserta en la base de datos
   };
@@ -188,6 +228,19 @@ export default function OrderTrackingScreen() {
     return (
       <View style={styles.loadingContainer}>
         <Text style={styles.loadingText}>{t('cargando')}</Text>
+      </View>
+    );
+  }
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity 
+          style={styles.backToOrdersButton}
+          onPress={() => router.push('/orders')}
+        >
+          <Text style={styles.backToOrdersText}>{t('volver a pedidos')}</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -206,10 +259,12 @@ export default function OrderTrackingScreen() {
     );
   }
   
-  // Format the order time
-  const orderTime = new Date(order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const estimatedDeliveryTime = new Date(new Date(order.date).getTime() + 45 * 60000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  
+  // Calcular subtotal real
+  const subtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const deliveryFee = 2.99;
+  const serviceFee = 1.50;
+  const total = subtotal + deliveryFee + serviceFee;
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -221,15 +276,14 @@ export default function OrderTrackingScreen() {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('Pedido')}</Text>
       </View>
-      
       <ScrollView style={styles.content}>
         <View style={styles.orderInfoCard}>
           <View style={styles.orderHeader}>
             <View>
-              <Text style={styles.orderNumber}>#{order.id}</Text>
-              <Text style={styles.orderDate}>{orderTime} • {order.items.length} {t('artículos')}</Text>
+              <Text style={styles.orderNumber}>#{order.orderNumber || order.id}</Text>
+              <Text style={styles.orderDate}>{new Date(order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {order.items.length} {t('artículos')}</Text>
             </View>
-            <Text style={styles.orderTotal}>${order.total.toFixed(2)}</Text>
+            <Text style={styles.orderTotal}>${total.toFixed(2)}</Text>
           </View>
           
           <View style={styles.divider} />
@@ -240,7 +294,7 @@ export default function OrderTrackingScreen() {
               <Text style={styles.restaurantName}>{order.restaurantName}</Text>
               <View style={styles.restaurantLocation}>
                 <MapPin size={14} color="#666" />
-                <Text style={styles.locationText}>1.8km {t('ubicación')}</Text>
+                <Text style={styles.locationText}>{restaurant?.address || ''}</Text>
               </View>
             </View>
           </View>
@@ -250,14 +304,14 @@ export default function OrderTrackingScreen() {
           <View style={styles.timeEstimate}>
             <View style={styles.timeItem}>
               <Text style={styles.timeLabel}>{t('hora del pedido')}</Text>
-              <Text style={styles.timeValue}>{orderTime}</Text>
+              <Text style={styles.timeValue}>{new Date(order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
             </View>
             <View style={styles.timeArrow}>
               <ArrowLeft size={16} color="#999" style={{ transform: [{ rotate: '180deg' }] }} />
             </View>
             <View style={styles.timeItem}>
               <Text style={styles.timeLabel}>{t('hora de entrega')}</Text>
-              <Text style={styles.timeValue}>{estimatedDeliveryTime}</Text>
+              <Text style={styles.timeValue}>{new Date(new Date(order.date).getTime() + 45 * 60000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
             </View>
           </View>
         </View>
@@ -316,19 +370,19 @@ export default function OrderTrackingScreen() {
             <View style={styles.orderSummary}>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>{t('subtotal')}</Text>
-                <Text style={styles.summaryValue}>${(order.total - 4.49).toFixed(2)}</Text>
+                <Text style={styles.summaryValue}>${subtotal.toFixed(2)}</Text>
               </View>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>{t('deliveryFee')}</Text>
-                <Text style={styles.summaryValue}>$2.99</Text>
+                <Text style={styles.summaryValue}>${deliveryFee.toFixed(2)}</Text>
               </View>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>{t('serviceFee')}</Text>
-                <Text style={styles.summaryValue}>$1.50</Text>
+                <Text style={styles.summaryValue}>${serviceFee.toFixed(2)}</Text>
               </View>
               <View style={[styles.summaryRow, styles.totalRow]}>
                 <Text style={styles.totalLabel}>{t('total')}</Text>
-                <Text style={styles.totalValue}>${order.total.toFixed(2)}</Text>
+                <Text style={styles.totalValue}>${total.toFixed(2)}</Text>
               </View>
             </View>
           </View>

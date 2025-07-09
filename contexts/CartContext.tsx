@@ -4,22 +4,22 @@ import * as Database from '@/utils/database';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface CartItem {
-  id: number;
-  product_id: number;
+  id: string; // Cambiado a string
+  product_id: string;
   quantity: number;
   price: number;
   notes?: string;
   name: string;
   image_url: string;
-  restaurant_id?: number;
-  restaurantId?: number;
-  cart_id?: number;
+  restaurant_id?: string;
+  restaurantId?: string;
+  cart_id?: string;
 }
 
 interface CartContextType {
   items: CartItem[];
   addItem: (product: any, quantity: number, notes?: string) => Promise<void>;
-  removeItem: (itemId: number) => Promise<void>;
+  removeItem: (itemId: string) => Promise<void>; // Cambiado a string
   clearCart: () => Promise<void>;
   total: number;
   isLoading: boolean;
@@ -31,12 +31,22 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
 
-  // Usuario temporal para pruebas
-  const userId = '1'; // Cambiado a string para compatibilidad
+  // Obtener el userId real al inicio
+  useEffect(() => {
+    const fetchUserId = async () => {
+      const email = await AsyncStorage.getItem('userEmail');
+      if (!email) return;
+      const user: any = await Database.getUserByEmail(email);
+      if (user && user.id) setUserId(user.id);
+    };
+    fetchUserId();
+  }, []);
 
   // Permitir recarga manual del carrito desde fuera
   const loadCartItems = async () => {
+    if (!userId) return;
     try {
       setIsLoading(true);
       const cartItems = await Database.getCartItems(userId);
@@ -48,13 +58,14 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    // Inicializar la base de datos si es necesario
-    Database.initDatabase();
-    // Cargar elementos del carrito al inicio
-    loadCartItems();
-  }, []);
+    if (userId) {
+      Database.initDatabase();
+      loadCartItems();
+    }
+  }, [userId]);
 
   const addItem = async (product: any, quantity: number, notes: string = '') => {
+    if (!userId) return;
     try {
       const restaurantId = product.restaurant_id ?? product.restaurantId;
       if (!restaurantId) {
@@ -65,10 +76,14 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       if (items.length > 0 && items[0].restaurant_id !== restaurantId && items[0].restaurantId !== restaurantId) {
         await clearCart();
       }
+      // Conversión explícita de IDs a string para evitar datatype mismatch
+      const userIdStr = userId.toString();
+      const restaurantIdStr = restaurantId.toString();
+      const productIdStr = product.id.toString();
       await Database.addToCart(
-        userId,
-        restaurantId,
-        product.id,
+        userIdStr,
+        restaurantIdStr,
+        productIdStr,
         quantity,
         product.price,
         notes
@@ -81,7 +96,8 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const removeItem = async (itemId: number) => {
+  const removeItem = async (itemId: string) => {
+    if (!userId) return;
     try {
       await Database.removeFromCart(itemId);
       // Recarga los items del carrito después de eliminar
@@ -96,9 +112,9 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const clearCart = async () => {
+    if (!userId) return;
     try {
-      if (userId && items.length > 0) {
-        const cartId = items[0].cart_id;
+      if (items.length > 0) {
         // Eliminar todos los elementos del carrito uno por uno
         for (const item of items) {
           await Database.removeFromCart(item.id);

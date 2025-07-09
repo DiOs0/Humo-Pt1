@@ -16,7 +16,7 @@ export default function CartScreen() {
   const [deliveryOption, setDeliveryOption] = useState('delivery');
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [updatingItemId, setUpdatingItemId] = useState<number | null>(null);
+  const [updatingItemId, setUpdatingItemId] = useState<string | null>(null);
 
   // Calcular totales
   const subtotal = total;

@@ -14,28 +14,61 @@ const migrateAddNameField = () => {
   }
 };
 
-// MIGRACIÓN: Cambia user_id y restaurant_id a TEXT en Cart, CartItems, Orders, OrderItems
+// MIGRACIÓN: Cambia todas las tablas antiguas a usar IDs TEXT (UUID/string)
 export const migrateCartAndOrdersToText = () => {
   // Cart
-  db.runSync('CREATE TABLE IF NOT EXISTS Cart_new (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, restaurant_id TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)');
-  db.runSync('INSERT INTO Cart_new (id, user_id, restaurant_id, created_at) SELECT id, CAST(user_id AS TEXT), CAST(restaurant_id AS TEXT), created_at FROM Cart');
+  db.runSync('CREATE TABLE IF NOT EXISTS Cart_new (id TEXT PRIMARY KEY NOT NULL, user_id TEXT, restaurant_id TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)');
+  db.runSync('INSERT INTO Cart_new (id, user_id, restaurant_id, created_at) SELECT CAST(id AS TEXT), CAST(user_id AS TEXT), CAST(restaurant_id AS TEXT), created_at FROM Cart');
   db.runSync('DROP TABLE IF EXISTS Cart');
   db.runSync('ALTER TABLE Cart_new RENAME TO Cart');
-  // CartItems (no user_id, pero dependiente de Cart)
+
+  // CartItems
+  db.runSync('CREATE TABLE IF NOT EXISTS CartItems_new (id TEXT PRIMARY KEY NOT NULL, cart_id TEXT, product_id TEXT, quantity INTEGER, price DECIMAL(10,2), notes TEXT)');
+  db.runSync('INSERT INTO CartItems_new (id, cart_id, product_id, quantity, price, notes) SELECT CAST(id AS TEXT), CAST(cart_id AS TEXT), CAST(product_id AS TEXT), quantity, price, notes FROM CartItems');
+  db.runSync('DROP TABLE IF EXISTS CartItems');
+  db.runSync('ALTER TABLE CartItems_new RENAME TO CartItems');
+
   // Orders
-  db.runSync('CREATE TABLE IF NOT EXISTS Orders_new (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, restaurant_id TEXT, status TEXT, total_amount DECIMAL(10,2), delivery_fee DECIMAL(10,2), service_fee DECIMAL(10,2), created_at DATETIME DEFAULT CURRENT_TIMESTAMP, delivery_address TEXT, customer_name TEXT, customer_phone TEXT)');
-  db.runSync('INSERT INTO Orders_new (id, user_id, restaurant_id, status, total_amount, delivery_fee, service_fee, created_at, delivery_address, customer_name, customer_phone) SELECT id, CAST(user_id AS TEXT), CAST(restaurant_id AS TEXT), status, total_amount, delivery_fee, service_fee, created_at, delivery_address, customer_name, customer_phone FROM Orders');
+  db.runSync('CREATE TABLE IF NOT EXISTS Orders_new (id TEXT PRIMARY KEY NOT NULL, user_id TEXT, restaurant_id TEXT, status TEXT, total_amount DECIMAL(10,2), delivery_fee DECIMAL(10,2), service_fee DECIMAL(10,2), created_at DATETIME DEFAULT CURRENT_TIMESTAMP, delivery_address TEXT, customer_name TEXT, customer_phone TEXT)');
+  db.runSync('INSERT INTO Orders_new (id, user_id, restaurant_id, status, total_amount, delivery_fee, service_fee, created_at, delivery_address, customer_name, customer_phone) SELECT CAST(id AS TEXT), CAST(user_id AS TEXT), CAST(restaurant_id AS TEXT), status, total_amount, delivery_fee, service_fee, created_at, delivery_address, customer_name, customer_phone FROM Orders');
   db.runSync('DROP TABLE IF EXISTS Orders');
   db.runSync('ALTER TABLE Orders_new RENAME TO Orders');
-  // Products y OrderItems no requieren migración de user_id
+
+  // OrderItems
+  db.runSync('CREATE TABLE IF NOT EXISTS OrderItems_new (id TEXT PRIMARY KEY NOT NULL, order_id TEXT, product_id TEXT, quantity INTEGER, price DECIMAL(10,2), notes TEXT)');
+  db.runSync('INSERT INTO OrderItems_new (id, order_id, product_id, quantity, price, notes) SELECT CAST(id AS TEXT), CAST(order_id AS TEXT), CAST(product_id AS TEXT), quantity, price, notes FROM OrderItems');
+  db.runSync('DROP TABLE IF EXISTS OrderItems');
+  db.runSync('ALTER TABLE OrderItems_new RENAME TO OrderItems');
+
+  // Products
+  db.runSync('CREATE TABLE IF NOT EXISTS Products_new (id TEXT PRIMARY KEY NOT NULL, restaurant_id TEXT, name TEXT, description TEXT, price DECIMAL(10,2), image_url TEXT, category TEXT, available BOOLEAN DEFAULT 1)');
+  db.runSync('INSERT INTO Products_new (id, restaurant_id, name, description, price, image_url, category, available) SELECT CAST(id AS TEXT), CAST(restaurant_id AS TEXT), name, description, price, image_url, category, available FROM Products');
+  db.runSync('DROP TABLE IF EXISTS Products');
+  db.runSync('ALTER TABLE Products_new RENAME TO Products');
+};
+
+// MIGRACIÓN: Añadir campo order_number incremental si no existe
+const migrateAddOrderNumber = () => {
+  const orderTableInfo = db.getAllSync("PRAGMA table_info(Orders)");
+  const hasOrderNumber = orderTableInfo.some((col: any) => col.name === 'order_number');
+  if (!hasOrderNumber) {
+    db.runSync('ALTER TABLE Orders ADD COLUMN order_number INTEGER');
+    // Asignar números incrementales a pedidos existentes
+    const orders = db.getAllSync('SELECT id FROM Orders ORDER BY created_at ASC');
+    orders.forEach((order: any, idx: number) => {
+      db.runSync('UPDATE Orders SET order_number = ? WHERE id = ?', [idx + 1, order.id]);
+    });
+  }
 };
 
 // Inicializar tablas
+let dbInitialized = false;
 export const initDatabase = () => {
+  if (dbInitialized) return;
   try {
     migrateAddNameField();
     migrateCartAndOrdersToText();
-    
+    migrateAddOrderNumber();
     db.execSync(`
       -- ESTRUCTURA EASYFOOD RELACIONAL
       CREATE TABLE IF NOT EXISTS users (
@@ -105,58 +138,8 @@ export const initDatabase = () => {
         FOREIGN KEY(customer_id) REFERENCES customers(id),
         FOREIGN KEY(restaurant_id) REFERENCES restaurants(id)
       );
-      -- FIN ESTRUCTURA EASYFOOD RELACIONAL
-      
-      -- Estructura previa (carrito, productos, etc.)
-      CREATE TABLE IF NOT EXISTS Cart (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        restaurant_id INTEGER,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
-      CREATE TABLE IF NOT EXISTS CartItems (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        cart_id INTEGER,
-        product_id INTEGER,
-        quantity INTEGER,
-        price DECIMAL(10,2),
-        notes TEXT,
-        FOREIGN KEY (cart_id) REFERENCES Cart(id)
-      );
-      CREATE TABLE IF NOT EXISTS Orders (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        restaurant_id INTEGER,
-        status TEXT CHECK(status IN ('preparing', 'ready', 'delivering', 'completed', 'cancelled')),
-        total_amount DECIMAL(10,2),
-        delivery_fee DECIMAL(10,2),
-        service_fee DECIMAL(10,2),
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        delivery_address TEXT,
-        customer_name TEXT,
-        customer_phone TEXT
-      );
-      CREATE TABLE IF NOT EXISTS OrderItems (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        order_id INTEGER,
-        product_id INTEGER,
-        quantity INTEGER,
-        price DECIMAL(10,2),
-        notes TEXT,
-        FOREIGN KEY (order_id) REFERENCES Orders(id)
-      );
-      CREATE TABLE IF NOT EXISTS Products (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        restaurant_id INTEGER,
-        name TEXT,
-        description TEXT,
-        price DECIMAL(10,2),
-        image_url TEXT,
-        category TEXT,
-        available BOOLEAN DEFAULT 1
-      );
     `);
-    
+    dbInitialized = true;
     // Insertar productos de ejemplo
     insertSampleProducts();
   } catch (error) {
@@ -217,70 +200,48 @@ const insertSampleProducts = () => {
 // Función para agregar un producto al carrito
 export const addToCart = (
   userId: string,
-  restaurantId: number,
-  productId: number,
+  restaurantId: string,
+  productId: string,
   quantity: number,
   price: number,
   notes: string = ''
 ) => {
   try {
-    console.log('addToCart llamado', { userId, restaurantId, productId, quantity, price, notes });
-    
-    // Buscar carrito existente
-    const cartResult: any = db.getFirstSync(
-      'SELECT * FROM Cart WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
-      [userId]
+    // Buscar carrito existente SOLO para este usuario y restaurante
+    let cartResult: any = db.getFirstSync(
+      'SELECT * FROM Cart WHERE user_id = ? AND restaurant_id = ? ORDER BY created_at DESC LIMIT 1',
+      [userId, restaurantId]
     );
     let cartId = cartResult?.id;
-
-    // Si no hay carrito, crear uno nuevo
+    // Si no hay carrito, crear uno nuevo con UUID
     if (!cartId) {
+      cartId = uuid.v4();
       db.runSync(
-        'INSERT INTO Cart (user_id, restaurant_id) VALUES (?, ?)',
-        [userId, restaurantId]
+        'INSERT INTO Cart (id, user_id, restaurant_id) VALUES (?, ?, ?)',
+        [cartId, userId, restaurantId]
       );
-      const newCart: any = db.getFirstSync(
-        'SELECT * FROM Cart WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
-        [userId]
-      );
-      cartId = newCart?.id;
     }
     // Validación extra: si aún no hay cartId, lanzar error explícito
     if (!cartId) {
       throw new Error('No se pudo crear el carrito para el usuario');
     }
-
     // Verificar si el producto ya está en el carrito
     const item: any = db.getFirstSync(
       'SELECT * FROM CartItems WHERE cart_id = ? AND product_id = ?',
       [cartId, productId]
     );
-    
     if (item) {
       const newQuantity = item.quantity + quantity;
-      console.log('Actualizando cantidad', { itemId: item.id, oldQuantity: item.quantity, quantity, newQuantity });
-      
       if (newQuantity <= 0) {
-        // Si la nueva cantidad es 0 o menos, eliminar el item
-        console.log('Eliminando item porque la cantidad es <= 0', { itemId: item.id });
-        db.runSync(
-          'DELETE FROM CartItems WHERE id = ?',
-          [item.id]
-        );
+        db.runSync('DELETE FROM CartItems WHERE id = ?', [item.id]);
       } else {
-        // Actualizar cantidad
-        console.log('Actualizando cantidad a', newQuantity);
-        db.runSync(
-          'UPDATE CartItems SET quantity = ? WHERE id = ?',
-          [newQuantity, item.id]
-        );
+        db.runSync('UPDATE CartItems SET quantity = ? WHERE id = ?', [newQuantity, item.id]);
       }
     } else if (quantity > 0) {
-      // Solo insertar si la cantidad es positiva
-      console.log('Insertando nuevo item en el carrito');
+      const cartItemId = uuid.v4();
       db.runSync(
-        'INSERT INTO CartItems (cart_id, product_id, quantity, price, notes) VALUES (?, ?, ?, ?, ?)',
-        [cartId, productId, quantity, price, notes]
+        'INSERT INTO CartItems (id, cart_id, product_id, quantity, price, notes) VALUES (?, ?, ?, ?, ?, ?)',
+        [cartItemId, cartId, productId, quantity, price, notes]
       );
     }
   } catch (error) {
@@ -288,23 +249,15 @@ export const addToCart = (
   }
 };
 
-// Obtener items del carrito
-export const getCartItems = (userId: string) => {
+// --- Mejorar robustez y depuración en getCartItems ---
+export const getCartItems = async (userId: string) => {
   try {
-    console.log('getCartItems llamado', { userId });
-    
+    await initDatabase(); // Asegura inicialización
     const cart: any = db.getFirstSync(
       'SELECT * FROM Cart WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
       [userId]
     );
-    
-    if (!cart) {
-      console.log('No se encontró carrito para el usuario', userId);
-      return [];
-    }
-    
-    console.log('Carrito encontrado:', cart);
-    
+    if (!cart) return []; // Si no hay carrito, retorna array vacío para que la UI muestre estado vacío
     const items = db.getAllSync(
       `SELECT 
           ci.id AS id,
@@ -321,69 +274,49 @@ export const getCartItems = (userId: string) => {
        WHERE ci.cart_id = ?`,
       [cart.id]
     );
-    
-    console.log('Items en el carrito:', items);
-    return items;
+    // Normaliza la imagen: si es ruta local, la UI debe usar require, si es URL, usar string
+    return items.map((item: any) => {
+      let imageType = 'unknown';
+      if (typeof item.image_url === 'string') {
+        if (item.image_url.startsWith('http')) {
+          imageType = 'remote';
+        } else if (item.image_url.startsWith('assets/') || item.image_url.startsWith('images/')) {
+          imageType = 'local';
+        } else {
+          imageType = 'default';
+        }
+      }
+      return {
+        ...item,
+        imageType,
+      };
+    });
   } catch (error) {
     console.error('Error getting cart items:', error);
-    return [];
+    return []; // Siempre retorna array vacío en error para que la UI no crashee
   }
 };
 
 // Eliminar item del carrito
-export const removeFromCart = (cartItemId: number) => {
+export const removeFromCart = (cartItemId: string) => {
   try {
-    console.log('removeFromCart llamado con ID:', cartItemId);
-    
-    // Verificar si el item existe antes de eliminarlo
-    const checkQuery = 'SELECT * FROM CartItems WHERE id = ?';
-    console.log('Ejecutando consulta:', checkQuery, 'con parámetro:', cartItemId);
-    
-    const item = db.getFirstSync(checkQuery, [cartItemId]);
-    
-    if (item) {
-      console.log('Item encontrado, eliminando:', item);
-      const deleteQuery = 'DELETE FROM CartItems WHERE id = ?';
-      console.log('Ejecutando consulta:', deleteQuery, 'con parámetro:', cartItemId);
-      
-      db.runSync(deleteQuery, [cartItemId]);
-      console.log('Item eliminado correctamente');
-      
-      // Verificar que se haya eliminado
-      const verifyItem = db.getFirstSync('SELECT * FROM CartItems WHERE id = ?', [cartItemId]);
-      if (!verifyItem) {
-        console.log('Verificado: el item ya no existe en la base de datos');
-      } else {
-        console.log('Información: El item no se eliminó correctamente, pero continuaremos de todas formas');
-      }
-    } else {
-      // Solo registramos en consola sin mostrar error al usuario
-      console.log('Información: No se encontró el item con ID:', cartItemId, '- Esto es normal en algunos casos');
-      
-      // Obtener todos los IDs de CartItems para depuración (sin mostrar al usuario)
-      if (process.env.NODE_ENV === 'development') {
-        const allItems = db.getAllSync('SELECT id, product_id FROM CartItems', []);
-        console.log('IDs disponibles en CartItems:', allItems);
-      }
-    }
-    
-    // Siempre devolvemos true para evitar errores en la UI
+    db.runSync('DELETE FROM CartItems WHERE id = ?', [cartItemId]);
     return true;
   } catch (error) {
-    // Solo log, sin error para el usuario
-    console.log('Información: Error técnico al eliminar del carrito, pero continuamos:', error);
-    return true; // Devolvemos true de todas formas para no romper la UI
+    console.log('Error al eliminar del carrito:', error);
+    return true;
   }
 };
 
-// Crear una orden desde el carrito
-export const createOrder = (
+// --- Mejorar robustez y depuración en createOrder ---
+export const createOrder = async (
   userId: string,
   deliveryAddress: string,
   customerName: string,
   customerPhone: string
-): number => {
+): Promise<string> => {
   try {
+    await initDatabase();
     const cart: any = db.getFirstSync(
       'SELECT * FROM Cart WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
       [userId]
@@ -397,13 +330,21 @@ export const createOrder = (
     const totalAmount = items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
     const deliveryFee = 2.99;
     const serviceFee = 1.50;
+    const orderId = uuid.v4();
+    // Obtener el siguiente número de pedido
+    const lastOrderObj = db.getFirstSync('SELECT order_number FROM Orders ORDER BY order_number DESC LIMIT 1');
+    let nextOrderNumber = 1;
+    if (lastOrderObj && typeof lastOrderObj === 'object' && 'order_number' in lastOrderObj && lastOrderObj.order_number != null) {
+      nextOrderNumber = Number(lastOrderObj.order_number) + 1;
+    }
     db.runSync(
       `INSERT INTO Orders (
-        user_id, restaurant_id, status, total_amount,
+        id, user_id, restaurant_id, status, total_amount,
         delivery_fee, service_fee, delivery_address,
-        customer_name, customer_phone
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        customer_name, customer_phone, order_number
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
+        orderId,
         userId,
         cart.restaurant_id,
         'preparing',
@@ -412,27 +353,25 @@ export const createOrder = (
         serviceFee,
         deliveryAddress,
         customerName,
-        customerPhone
+        customerPhone,
+        nextOrderNumber
       ]
-    );
-    const order: any = db.getFirstSync(
-      'SELECT * FROM Orders WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
-      [userId]
     );
     // Transferir los items del carrito a la orden
     items.forEach((item: any) => {
+      const orderItemId = uuid.v4();
       db.runSync(
-        `INSERT INTO OrderItems (order_id, product_id, quantity, price, notes)
-         VALUES (?, ?, ?, ?, ?)`,
-        [order.id, item.product_id, item.quantity, item.price, item.notes]
+        `INSERT INTO OrderItems (id, order_id, product_id, quantity, price, notes)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [orderItemId, orderId, item.product_id, item.quantity, item.price, item.notes]
       );
     });
     // Limpiar solo el carrito del usuario actual
     clearUserCart(userId);
-    return order.id;
+    return orderId;
   } catch (error) {
     console.error('Error creating order:', error);
-    return 0;
+    throw error; // Lanza el error para que el frontend lo capture
   }
 };
 
@@ -454,15 +393,13 @@ export const getOrders = (userId: string) => {
 };
 
 // Obtener detalles de una orden
-export const getOrderDetails = (orderId: number) => {
+export const getOrderDetails = (orderId: string) => {
   try {
     const order: any = db.getFirstSync(
-      `SELECT * FROM Orders WHERE id = ?`,
+      `SELECT *, order_number FROM Orders WHERE id = ?`,
       [orderId]
     );
-    
     if (!order) return null;
-    
     const items = db.getAllSync(
       `SELECT oi.*, p.name, p.image_url
        FROM OrderItems oi
@@ -470,7 +407,6 @@ export const getOrderDetails = (orderId: number) => {
        WHERE oi.order_id = ?`,
       [orderId]
     );
-    
     return { ...order, items };
   } catch (error) {
     console.error('Error getting order details:', error);
@@ -479,7 +415,7 @@ export const getOrderDetails = (orderId: number) => {
 };
 
 // Actualizar estado de la orden
-export const updateOrderStatus = (orderId: number, status: string) => {
+export const updateOrderStatus = (orderId: string, status: string) => {
   try {
     db.runSync('UPDATE Orders SET status = ? WHERE id = ?', [status, orderId]);
   } catch (error) {
@@ -528,7 +464,7 @@ export const getUserByEmail = (email: string) => {
 };
 
 // Modificar insertUser para lanzar error si el correo ya existe
-export const insertUser = (user: { id?: string, email: string, password: string, role: string }) => {
+export const registerUser = (user: { id?: string, email: string, password: string, role: string }) => {
   const existing = db.getFirstSync('SELECT * FROM users WHERE email = ?', [user.email]);
   if (existing) {
     throw new Error('El correo ya está registrado');
@@ -539,6 +475,18 @@ export const insertUser = (user: { id?: string, email: string, password: string,
     [userId, user.email, user.password, user.role]
   );
   return userId;
+};
+
+// Login seguro: busca usuario y valida contraseña
+export const loginUser = (email: string, password: string) => {
+  const user = db.getFirstSync('SELECT * FROM users WHERE email = ?', [email]);
+  if (!user) {
+    throw new Error('No existe una cuenta con ese correo');
+  }
+  if ((user as any).password !== password) {
+    throw new Error('Contraseña incorrecta');
+  }
+  return user;
 };
 
 // Elimina usuario y todos sus datos relacionados (pedidos, reviews, etc)

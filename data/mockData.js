@@ -1,7 +1,7 @@
 // Mock data for restaurants
 export const mockRestaurants = [
   {
-    id: 1,
+    id: "1",
     name: "¡Hasta la Vuelta!, Señor",
     cuisine: "Tipica",
     rating: 4.7,
@@ -14,7 +14,7 @@ export const mockRestaurants = [
     address: "Chile Oe 456, Quito 170401",
     menu: [
       {
-        id: 1,
+        id: "1",
         name: "Fanesca",
         description: "Plato tradicional ecuatoriano, un potaje que se prepara principalmente durante la Semana Santa",
         price: 12.99,
@@ -22,7 +22,7 @@ export const mockRestaurants = [
         category: "Tipico"
       },
       {
-        id: 2,
+        id: "2",
         name: "Estofado de Carne",
         description: "Arroz, comida típica ecuatoriana, con carne de res, papas y zanahorias",
         price: 14.99,
@@ -30,7 +30,7 @@ export const mockRestaurants = [
         category: "Tipico"
       },
       {
-        id: 3,
+        id: "3",
         name: "fritada",
         description: "Deliciosa fritada de cerdo con mote y llapingachos",
         price: 13.99,
@@ -38,7 +38,7 @@ export const mockRestaurants = [
         category: "Fritada"
       },
       {
-        id: 4,
+        id: "4",
         name: "churasco",
         description: "Huevos, carne de res, plátano maduro y aguacate",
         price: 4.99,
@@ -46,7 +46,7 @@ export const mockRestaurants = [
         category: "Tipico"
       },
       {
-        id: 5,
+        id: "5",
         name: "empanadas",
         description: "empanadas de carne, pollo o queso, acompañadas de ají",
         price: 5.99,
@@ -54,7 +54,7 @@ export const mockRestaurants = [
         category: "Empanadas"
       },
       {
-        id: 6,
+        id: "6",
         name: "seco de chivo",
         description: "chivo guisado con especias, acompañado de arroz y plátano",
         price: 5.99,
@@ -64,7 +64,7 @@ export const mockRestaurants = [
     ]
   },
   {
-    id: 2,
+    id: "2",
     name: "Las menestras de la almagro",
     cuisine: "Asados",
     rating: 4.5,
@@ -77,7 +77,7 @@ export const mockRestaurants = [
     address: "Av. Almagro y Colón, Quito 170143, Ecuador",
     menu: [
       {
-        id: 7,
+        id: "7",
         name: "Churasco",
         description: "Carne asada con arroz, plátano y ensalada",
         price: 14.99,
@@ -85,7 +85,7 @@ export const mockRestaurants = [
         category: "Tipico"
       },
       {
-        id: 8,
+        id: "8",
         name: "Filete de Pollo",
         description: "Pollo frito con papas fritas y ensalada",
         price: 16.99,
@@ -95,7 +95,7 @@ export const mockRestaurants = [
     ]
   },
   {
-    id: 3,
+    id: "3",
     name: "Cafe San Blas",
     cuisine: "Cafeteria",
     rating: 4.3,
@@ -108,7 +108,7 @@ export const mockRestaurants = [
     address: "Plaza de San Blas, Av. Pichincha, Quito 170136, Ecuador",
     menu: [
       {
-        id: 9,
+        id: "9",
         name: "Postre de Chocolate",
         description: "Postre de chocolate con helado de vainilla",
         price: 12.99,
@@ -116,7 +116,7 @@ export const mockRestaurants = [
         category: "Postres"
       },
       {
-        id: 10,
+        id: "10",
         name: "Pizza con Pimiento y Champiñones",
         description: "Pizza con pimiento y champiñones",
         price: 11.99,
@@ -126,7 +126,7 @@ export const mockRestaurants = [
     ]
   },
   {
-    id: 4,
+    id: "4",
     name: "Corvinas de Don Jimmy",
     cuisine: "Ecuatoriana",
     rating: 4.8,
@@ -139,7 +139,7 @@ export const mockRestaurants = [
     address: "Mercado Central, Av. Pichincha y Esmeraldas, Quito 170136, Ecuador",
     menu: [
       {
-        id: 11,
+        id: "11",
         name: "Corvina",
         description: "Corvina fresca a la parrilla con guarnición de ensalada",
         price: 8.99,
@@ -147,7 +147,7 @@ export const mockRestaurants = [
         category: "Mariscos"
       },
       {
-        id: 12,
+        id: "12",
         name: "encebollado",
         description: "Sopa de pescado con cebolla y yuca",
         price: 9.99,
@@ -157,7 +157,7 @@ export const mockRestaurants = [
     ]
   },
   {
-    id: 5,
+    id: "5",
     name: "Mote Colonial",
     cuisine: "Tradicional",
     rating: 4.6,
@@ -170,7 +170,7 @@ export const mockRestaurants = [
     address: "Calle La Ronda, Venezuela y Morales, Quito 170150, Ecuador",
     menu: [
       {
-        id: 13,
+        id: "13",
         name: "Bolon de Plátano",
         description: "Bolon de plátano verde con ensalada de vegetales y salsa de ají",
         price: 13.99,
@@ -178,7 +178,7 @@ export const mockRestaurants = [
         category: "Bolones"
       },
       {
-        id: 14,
+        id: "14",
         name: "Mote con chicharrón",
         description: "Mote con chicharrón y ensalada de cebolla",
         price: 11.99,
