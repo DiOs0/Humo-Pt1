@@ -35,7 +35,7 @@ npm install
 2. Instala las dependencias específicas necesarias:
 
 ```bash
-npm install react-native-maps @react-native-community/geolocation expo-location
+npm install react-native-maps @react-native-community/geolocation expo-location (este no)
 npm install @react-navigation/native @react-navigation/stack expo-constants
 npm install react-native-svg lucide-react-native
 npm install expo-sqlite 
@@ -43,7 +43,7 @@ npm install expo-sqlite
 
 ## mas librerias 
 npx expo install expo-image-picker
-npm install uuid // genera errores 
+npm install uuid // genera errores (ESTE NO)
 npm install --save-dev @types/uuid
 
 npm install react-native-uuid
