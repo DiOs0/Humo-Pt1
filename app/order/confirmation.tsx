@@ -47,7 +47,7 @@ export default function OrderConfirmationScreen() {
       try {
         if (params.orderId) {
           // Si tenemos un ID de pedido real, cargamos los detalles desde la base de datos
-          const details = await getOrderDetails(Number(params.orderId));
+          const details = await getOrderDetails(params.orderId.toString());
           setOrderDetails(details);
         } else {
           // Para pruebas, usamos datos del parámetro o valores por defecto
@@ -78,7 +78,7 @@ export default function OrderConfirmationScreen() {
 
   // Encontrar información del restaurante
   const restaurant = orderDetails?.restaurant_id
-    ? mockRestaurants.find(r => r.id === orderDetails.restaurant_id)
+    ? mockRestaurants.find(r => r.id.toString() === orderDetails.restaurant_id.toString())
     : null;
 
   const restaurantName = params.restaurantName || restaurant?.name || 'Restaurante';
@@ -146,52 +146,48 @@ export default function OrderConfirmationScreen() {
           <View style={styles.orderSummary}>
             <Text style={styles.summaryTitle}>{t('resumen del pedido')}</Text>
 
-            {/* Si tenemos elementos del pedido, mostrarlos */}
-            {orderDetails?.items && orderDetails.items.length > 0 ? (
-              orderDetails.items.map((item, index) => (
-                <View key={index} style={styles.summaryItem}>
-                  <Text style={styles.itemName}>{item.name} x{item.quantity}</Text>
-                  <Text style={styles.itemPrice}>${(item.price * item.quantity).toFixed(2)}</Text>
-                </View>
-              ))
-            ) : (
-              // Si no hay elementos, mostrar datos de ejemplo
+            {/* Mostrar solo los productos reales del pedido */}
+            {orderDetails?.items && orderDetails.items.length > 0 && (
               <>
-                <View style={styles.summaryItem}>
-                  <Text style={styles.itemName}>Plato principal x2</Text>
-                  <Text style={styles.itemPrice}>${(subtotal * 0.6).toFixed(2)}</Text>
-                </View>
-                <View style={styles.summaryItem}>
-                  <Text style={styles.itemName}>Guarnición x1</Text>
-                  <Text style={styles.itemPrice}>${(subtotal * 0.3).toFixed(2)}</Text>
-                </View>
-                <View style={styles.summaryItem}>
-                  <Text style={styles.itemName}>Bebida x1</Text>
-                  <Text style={styles.itemPrice}>${(subtotal * 0.1).toFixed(2)}</Text>
-                </View>
+                {orderDetails.items.map((item, index) => (
+                  <View key={index} style={styles.summaryItem}>
+                    <Text style={styles.itemName}>{item.name} x{item.quantity}</Text>
+                    <Text style={styles.itemPrice}>${(item.price * item.quantity).toFixed(2)}</Text>
+                  </View>
+                ))}
               </>
             )}
-            
+
             <View style={styles.divider} />
-            
+
+            {/* Calcular subtotal real igual que en carrito */}
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>{t('subtotal')}</Text>
-              <Text style={styles.summaryValue}>${subtotal.toFixed(2)}</Text>
+              <Text style={styles.summaryValue}>
+                ${orderDetails?.items && orderDetails.items.length > 0 ? (
+                  orderDetails.items.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)
+                ) : '0.00'}
+              </Text>
             </View>
-            
+
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>{t('deliveryFee')}</Text>
               <Text style={styles.summaryValue}>${deliveryFee.toFixed(2)}</Text>
             </View>
-            
+
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>{t('serviceFee')}</Text>
               <Text style={styles.summaryValue}>${serviceFee.toFixed(2)}</Text>
             </View>
-            
+
             <View style={[styles.summaryItem, styles.totalItem]}>
               <Text style={styles.totalLabel}>{t('total')}</Text>
-              <Text style={styles.totalValue}>${total.toFixed(2)}</Text>
+              <Text style={styles.totalValue}>
+                ${(
+                  (orderDetails?.items ? orderDetails.items.reduce((sum, item) => sum + (item.price * item.quantity), 0) : subtotal)
+                  + deliveryFee + serviceFee
+                ).toFixed(2)}
+              </Text>
             </View>
           </View>
         </View>

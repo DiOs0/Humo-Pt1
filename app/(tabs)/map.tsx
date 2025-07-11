@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Dimensions, ActivityIndicator, Text } from 'react-native';
-import { WebView } from 'react-native-webview';
+import MapView, { Marker } from 'react-native-maps';
 import { mockRestaurants } from '../../data/mockData';
 import { geocodeAddress } from '../../utils/geocode';
+import Constants from 'expo-constants';
 
 const { width } = Dimensions.get('window');
 
@@ -27,7 +28,7 @@ export default function MapTestScreen() {
             try {
               const coords = await geocodeAddress(rest.address);
               return {
-                id: rest.id,
+                id: Number(rest.id), // Asegura que el id sea number
                 name: rest.name,
                 lat: coords.lat,
                 lng: coords.lng,
@@ -78,24 +79,29 @@ export default function MapTestScreen() {
     );
   }
 
-  // Construir la URL de Google Maps con los marcadores
-  const baseUrl = 'https://www.google.com/maps/embed/v1/view';
-  const apiKey = 'AIzaSyAHDnMOx1QWZvmq1ZaVpYK6JTE9G9v-a3A';
   // Centrar en Quito o el primer marcador
-  const center = markers.length > 0 ? `${markers[0].lat},${markers[0].lng}` : '-0.1807,-78.4678';
-  const zoom = 12;
-  // NOTA: Google Maps Embed API no permite múltiples marcadores, pero puedes mostrar el centro
-  const mapUrl = `${baseUrl}?key=${apiKey}&center=${center}&zoom=${zoom}`;
+  const initialRegion = {
+    latitude: markers.length > 0 ? markers[0].lat : -0.1807,
+    longitude: markers.length > 0 ? markers[0].lng : -78.4678,
+    latitudeDelta: 0.05,
+    longitudeDelta: 0.05,
+  };
 
   return (
     <View style={styles.container}>
-      <WebView
-        source={{ uri: mapUrl }}
+      <MapView
         style={styles.mapWebView}
-        javaScriptEnabled
-        domStorageEnabled
-      />
-      <Text style={styles.title}>Restaurantes encontrados:</Text>
+        initialRegion={initialRegion}
+      >
+        {markers.map((marker) => (
+          <Marker
+            key={marker.id}
+            coordinate={{ latitude: marker.lat, longitude: marker.lng }}
+            title={marker.name}
+          />
+        ))}
+      </MapView>
+      {/* <Text style={styles.title}>Restaurantes encontrados:</Text>
       {markers.map((marker) => (
         <View key={marker.id} style={styles.markerBox}>
           <Text style={styles.markerTitle}>{marker.name}</Text>
@@ -103,7 +109,7 @@ export default function MapTestScreen() {
             Lat: {marker.lat}, Lng: {marker.lng}
           </Text>
         </View>
-      ))}
+      ))} */}
     </View>
   );
 }
@@ -111,15 +117,16 @@ export default function MapTestScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: 'stretch',
     backgroundColor: '#fff',
-    paddingVertical: 12,
+    paddingVertical: 0,
   },
   mapWebView: {
-    width: width - 20,
-    height: 300,
-    borderRadius: 12,
-    marginBottom: 16,
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    borderRadius: 0,
+    marginBottom: 0,
     backgroundColor: '#eee',
     overflow: 'hidden',
   },

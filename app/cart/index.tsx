@@ -121,7 +121,7 @@ export default function CartScreen() {
 
         // Emitir evento para refrescar pedidos
         DeviceEventEmitter.emit('refreshOrders');
-        router.push('/order/confirmation');
+        router.push({ pathname: '/order/confirmation', params: { orderId } });
       }
     } catch (error) {
       // Mostrar el error real
@@ -177,35 +177,50 @@ export default function CartScreen() {
 
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>{t('productos')}</Text>
-              {items.map(item => (
-                <View key={item.id} style={styles.cartItem}>
-                  <Image
-                    source={typeof item.image_url === 'string' ? { uri: item.image_url } : item.image_url}
-                    style={styles.itemImage}
-                  />
-                  <View style={styles.itemInfo}>
-                    <Text style={styles.itemName}>{item.name}</Text>
-                    <Text style={styles.itemPrice}>${item.price.toFixed(2)}</Text>
+              {items.map(item => {
+                let imageSource;
+                if (typeof item.image_url === 'string') {
+                  if (item.image_url.startsWith('http')) {
+                    imageSource = { uri: item.image_url };
+                  } else {
+                    // Buscar el producto en mockRestaurants
+                    const foundRestaurant = mockRestaurants.find(r => r.id == (item.restaurant_id || item.restaurantId));
+                    const foundProduct = foundRestaurant?.menu?.find(p => p.id == item.product_id);
+                    imageSource = foundProduct?.image || require('../../assets/images/icon.png'); // Fallback a icono si no se encuentra
+                  }
+                } else {
+                  imageSource = item.image_url;
+                }
+                return (
+                  <View key={item.id} style={styles.cartItem}>
+                    <Image
+                      source={imageSource}
+                      style={styles.itemImage}
+                    />
+                    <View style={styles.itemInfo}>
+                      <Text style={styles.itemName}>{item.name}</Text>
+                      <Text style={styles.itemPrice}>${item.price.toFixed(2)}</Text>
+                    </View>
+                    <View style={styles.quantityControls}>
+                      <TouchableOpacity 
+                        style={styles.quantityButton}
+                        onPress={() => handleDecreaseQuantity(item)}
+                        disabled={updatingItemId === item.id}
+                      >
+                        <Minus size={16} color="#E85D04" />
+                      </TouchableOpacity>
+                      <Text style={styles.quantityText}>{item.quantity}</Text>
+                      <TouchableOpacity 
+                        style={styles.quantityButton}
+                        onPress={() => handleIncreaseQuantity(item)}
+                        disabled={updatingItemId === item.id}
+                      >
+                        <Plus size={16} color="#E85D04" />
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                  <View style={styles.quantityControls}>
-                    <TouchableOpacity 
-                      style={styles.quantityButton}
-                      onPress={() => handleDecreaseQuantity(item)}
-                      disabled={updatingItemId === item.id}
-                    >
-                      <Minus size={16} color="#E85D04" />
-                    </TouchableOpacity>
-                    <Text style={styles.quantityText}>{item.quantity}</Text>
-                    <TouchableOpacity 
-                      style={styles.quantityButton}
-                      onPress={() => handleIncreaseQuantity(item)}
-                      disabled={updatingItemId === item.id}
-                    >
-                      <Plus size={16} color="#E85D04" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ))}
+                );
+              })}
             </View>
 
             <View style={styles.section}>
